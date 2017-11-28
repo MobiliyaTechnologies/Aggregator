@@ -39,7 +39,7 @@ def main():
 	elif detection_id==1:
 		detection_type="vehicleDetection"
 	#print ("Detection Type_______________________________________________________________________________________",detection_type)
-	with open('/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/Device_Information') as f:
+	with open(camera_list[2]) as f:
 	    content = f.readlines()
 	#print content
 	content = [x.strip() for x in content] 
@@ -64,13 +64,13 @@ def main():
 				timestamp = time1.strftime('%Y%m%d%H%M%S')
 				filename = str(camera_id)+"_"+detection_type+"_"+timestamp+".jpg"
 
-				file_path = '/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/'+'Cam'+str(camera_id)
+				file_path = camera_list[2]+'Cam'+str(camera_id)
 				if imgtemp is not None:
 					cv2.imwrite(os.path.join(file_path ,filename), imgtemp)
 					time.sleep(2)
 			else:
 				print "		DVR ERROR!!! "
-				url = "http://52.177.169.81:5005/api/errorHandling"
+				url = camera_list[3]
 				requests.post(url, {'DVRError':'DVR not responding!!'})
 				
 	except KeyboardInterrupt:

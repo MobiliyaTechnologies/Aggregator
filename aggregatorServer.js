@@ -61,96 +61,95 @@
  client.on('close', function() { console.log("\n**BROKER STATUS :: \n     CLOSED connection with MQTT broker!\n-----------------------------------\n"); });
 
  //Handling Messages
-client.on('message', function (topic, message) {
-  // message is Buffer
-  console.log(topic);
-  switch(topic){
-  	case '/':
-  		{
-  			//console.log(message.toString());
-  			console.log("MQTT==================Project Heimdall Server Available to Respond!!\n-----------------------------------\n");
-  			break;
-  		}
-  	case 'addCamera':
-  		{
-  			//console.log(message.toString());
-  			var newDevice=message.toString();
-  			addCamera(newDevice);
-  			console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
-  			break;
-  		}
-  	case 'updateDeviceList':
-  		{
-  			//console.log(message.toString());
-  			var testedDevice=message.toString();
-  			updateDeviceList(testedDevice);
-  			console.log("MQTT==================updateDeviceList Done!!\n-----------------------------------\n");
-  			break;
-  		}
-	case 'boundingBox':
-	{
-			//console.log(message.toString());
-			var sendData=message.toString();
-			var parsedJson = parseJson(sendData);
-			var camId = parsedJson.camId;
-			//boundingBox(sendData);
-			//stopCamera(camId,function(){
-			boundingBox(sendData);
-			//});
-			
-			console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
-			break;
-	}
-	case 'getRawImage':
-	{
-			//console.log(message.toString());
-			var sendData=message.toString();
-			var parsedJson = parseJson(sendData);
-			var camId = parsedJson.camId;
-			stopCamera(camId,function(){
-				getRawImage(message);
-			});
+ client.on('message', function(topic, message) {
+     // message is Buffer
+     console.log(topic);
+     switch (topic) {
+         case '/':
+             {
+                 //console.log(message.toString());
+                 console.log("MQTT==================Project Heimdall Server Available to Respond!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'addCamera':
+             {
+                 //console.log(message.toString());
+                 var newDevice = message.toString();
+                 addCamera(newDevice);
+                 console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'updateDeviceList':
+             {
+                 //console.log(message.toString());
+                 var testedDevice = message.toString();
+                 updateDeviceList(testedDevice);
+                 console.log("MQTT==================updateDeviceList Done!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'boundingBox':
+             {
+                 //console.log(message.toString());
+                 var sendData = message.toString();
+                 var parsedJson = parseJson(sendData);
+                 var camId = parsedJson.camId;
+                 //boundingBox(sendData);
+                 //stopCamera(camId,function(){
+                 boundingBox(sendData);
+                 //});
 
-			console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
-			break;
-	}
-	case 'stopCamera':
-	{
-			//console.log(message.toString());
-			var parsedJson = parseJson(message.toString());
-			var camId = parsedJson.camId;
-			var options ={ 
-					url: config.stopCameraURL,            
-					method: 'POST',
-					json: parsedJson        
-				}    
-			request(options, function () { console.log("Done!!"); })
+                 console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'getRawImage':
+             {
+                 //console.log(message.toString());
+                 var sendData = message.toString();
+                 var parsedJson = parseJson(sendData);
+                 var camId = parsedJson.camId;
+                 stopCamera(camId, function() {
+                     getRawImage(message);
+                 });
 
-			console.log("Message::",parsedJson);
-			stopCamera(camId,function(){
-			});
-			console.log("MQTT==================stopCamera Done!!\n-----------------------------------\n");
-			break;
-	}
-	case 'stopAllCamera':
-	{
-			stopAllCamera();
-			var parsedJson={'xyz':'cy'}
-			var options ={ 
-					url: config.stopAllCameraURL,            
-					method: 'POST',
-					json: parsedJson        
-				}    
-			request(options, function () { console.log("Done!!"); });
-			console.log("MQTT==================stopAllCamera Done!!\n-----------------------------------\n");
-			break;
-	}
-	default:
-	{
-			console.log("\n Topic:: "+topic+" not handled!!");
-	}	
-  }
-});
+                 console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'stopCamera':
+             {
+                 //console.log(message.toString());
+                 var parsedJson = parseJson(message.toString());
+                 var camId = parsedJson.camId;
+                 var options = {
+                     url: config.stopCameraURL,
+                     method: 'POST',
+                     json: parsedJson
+                 }
+                 request(options, function() { console.log("Done!!"); })
+
+                 console.log("Message::", parsedJson);
+                 stopCamera(camId, function() {});
+                 console.log("MQTT==================stopCamera Done!!\n-----------------------------------\n");
+                 break;
+             }
+         case 'stopAllCamera':
+             {
+                 stopAllCamera();
+                 var parsedJson = { 'xyz': 'cy' }
+                 var options = {
+                     url: config.stopAllCameraURL,
+                     method: 'POST',
+                     json: parsedJson
+                 }
+                 request(options, function() { console.log("Done!!"); });
+                 console.log("MQTT==================stopAllCamera Done!!\n-----------------------------------\n");
+                 break;
+             }
+         default:
+             {
+                 console.log("\n Topic:: " + topic + " not handled!!");
+             }
+     }
+ });
 
  //Functions
  var addCamera = function(message) {
@@ -246,6 +245,7 @@ client.on('message', function (topic, message) {
      var array = [];
      array.push(detection_type)
      array.push(camId);
+     array.push(livestreamingDeviceInfo, config.livestreamingCamFolder, config.livestreamingErrorURL);
      var datastreaming = JSON.stringify(array);
 
      console.log("Data to livestream::", datastreaming);

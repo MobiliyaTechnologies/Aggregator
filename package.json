@@ -11,5 +11,14 @@
     "url": "https://komal.pharate@scm.agreeyamobility.net:8443/Securityandsurveillance/jetson-device-client.git"
   },
   "author": "Komal Pharate",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "cors": "^2.8.4",
+    "mqtt": "^2.14.0",
+    "parse-json": "^4.0.0",
+    "python-shell": "^0.4.0",
+    "request": "^2.83.0",
+    "type-of-is": "^3.5.1"
+  }
 }

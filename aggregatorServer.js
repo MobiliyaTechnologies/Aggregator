@@ -155,13 +155,14 @@ client.on('message', function(topic, message) {
 var addCamera = function(message) {
     console.log("API CALL -updateDeviceList", message);
     var parsedJson = parseJson(message);
-    console.log("\n  New Device to test in the list::", parsedJson);
+    //console.log("\n  New Device to test in the list::", parsedJson);
 
     var Device_Information_temp = "./Device_Information_temp"
     var device_information = parsedJson.deviceType + "\n" + parsedJson.deviceName + "\n" + parsedJson.deviceId + "\n" + parsedJson.streamingUrl + "\n" + parsedJson.location + "\n" + parsedJson.technicalInfo;
     //console.log("\nDevice_Information:::",device_information);
     fs.writeFileSync(Device_Information_temp, device_information);
 
+/*
     var python = require('child_process').spawn('python', ["testDevice.py"]);
     var output = "";
     python.stdout.on('data', function(data) { output = data });
@@ -175,22 +176,52 @@ var addCamera = function(message) {
         console.log("Data::", dd);
         client.publish('addCameraResponse', dd);
     });
+*/
+
+	var pyshelltest = new PythonShell("testDevice.py");
+	var deviceArray=[];
+	deviceArray.push(parsedJson.streamingUrl);
+    	var deviceToTest = JSON.stringify(deviceArray);
+        pyshelltest.send(deviceToTest);
+	console.log(deviceArray);
+
+	pyshelltest.on('message', function (message) {
+	console.log(message);
+	var body = message;
+        console.log("  Device Test Results::", message);
+        var d = { "flag": message.toString().replace(/\r?\n|\r/g, "") };
+        var dd = JSON.stringify(d);
+
+        console.log(typeof(dd));
+        console.log("Data::", dd);
+        client.publish('addCameraResponse', dd);
+	console.log(typeof(message));
+	});
+
+	pyshelltest.end(function (err) {
+	    if (err){
+		throw err;
+	    };
+	    
+	    console.log('finished');
+	});
+
 }
 
 var updateDeviceList = function(message) {
     console.log("API CALL -updateDeviceList");
-    var Device_Information = "./Device_Information"
+
     var parsedJson = parseJson(message);
     console.log("\n  New Device to add in the list::", parsedJson);
 
     var device_information = parsedJson.camId + " " + parsedJson.streamingUrl;
     console.log("  Device_Information::", device_information);
-    fs.open(Device_Information, 'r', function(err, fd) {
+    fs.open(config.livestreamingDeviceInfo, 'r', function(err, fd) {
         if (err) {
-            fs.writeFileSync(Device_Information, device_information);
+            fs.writeFileSync(config.livestreamingDeviceInfo, device_information);
         } else {
             device_information = "\n" + device_information;
-            fs.appendFileSync(Device_Information, device_information);
+            fs.appendFileSync(config.livestreamingDeviceInfo, device_information);
         }
     });
 }
@@ -241,12 +272,11 @@ var checkForExistingEntries = function(camId, callback) {
 var startLiveStreaming = function(camId, detection_type) {
 
     var pyshell = new PythonShell('livestreaming.py');
-    detection_type = 0;
-    camId = 1;
     var array = [];
     array.push(detection_type)
     array.push(camId);
     array.push(config.livestreamingDeviceInfo, config.livestreamingCamFolder, config.livestreamingErrorURL);
+    console.log("Array Pushed ::",array);
     var datastreaming = JSON.stringify(array);
 
     console.log("Data to livestream::", datastreaming);

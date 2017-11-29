@@ -5,7 +5,7 @@ import datetime
 import os
 import time
 
-# #Read data from stdin
+#Read data from stdin
 def read_in():
     lines = sys.stdin.readlines()
     # Since our input would only be having one line, parse our JSON data from that
@@ -18,25 +18,14 @@ def main():
 	#print (type(lines))
 	argument_list=[]
 	for item in lines:
-		#print (item)		
-		#argument_list.append(item)
 		argument_list.append(item)
-	# print ("Camera List is",argument_list)
-	# print ("Argument List Is::::  ",argument_list)
-			
-	# for c in argument_list:
-	# 	if argument_list.index(c)==0:
-	# 		print("it is 0")
-	# 		detection_id=int(c)			
-	# 	else:
-	# 		camera_id=int(c)
+
 	detection_id = int(argument_list[0])
 	camera_id = int(argument_list[1])
-	print(detection_id,camera_id)
+	#print(detection_id,camera_id)
 
 	pid=str(os.getpid())
 
-	#change-check if already exists
 	with open("./stopProcessing", "a") as fd:
 		fd.write("\n"+str(camera_id)+" "+pid)
 
@@ -45,18 +34,17 @@ def main():
 	elif detection_id==1:
 		detection_type="vehicleDetection"
 	#print ("Detection Type_______________________________________________________________________________________",detection_type)
-	with open(argument_list[1]) as f:
+	with open(argument_list[2]) as f:
 	    content = f.readlines()
 	#print content
 	content = [x.strip() for x in content] 
-	# you may also want to remove whitespace characters like `\n` at the end of each line
+
 	d={}
 	for x in content:
-		key,value=x.split(" ")
+		if len(x) is not 0:
+			key,value=x.split(" ")
 	
-		d.update({int(key): value})  
-	#if camera_id in d.keys():
-	#	print d[camera_id]
+			d.update({int(key): value})  
 
 	cam_url=d[camera_id]
 	print "URL to stream::",cam_url
@@ -70,13 +58,13 @@ def main():
 				timestamp = time1.strftime('%Y%m%d%H%M%S')
 				filename = str(camera_id)+"_"+detection_type+"_"+timestamp+".jpg"
 
-				file_path = argument_list[2]+'Cam'+str(camera_id)
+				file_path = argument_list[3]+str(camera_id)
 				if imgtemp is not None:
 					cv2.imwrite(os.path.join(file_path ,filename), imgtemp)
 					time.sleep(2)
 			else:
 				print "		DVR ERROR!!! "
-				url = argument_list[3]
+				url = argument_list[4]
 				requests.post(url, {'DVRError':'DVR not responding!!'})
 				
 	except KeyboardInterrupt:

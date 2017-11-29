@@ -3,9 +3,9 @@ var config = {};
 var jsonWatcherArray = [];
 
 config.port = 3001;
-//config.host = "52.177.169.81:5006";
+config.host = "52.177.169.81:5006";
 config.mqttBroker = "mqtt://52.177.169.81:1885";
-config.stopCameraURL = "http://52.177.169.81:5005/api/resetCameraStatus"
+config.stopCameraURL = config.host + "/api/resetCameraStatus"
 config.camFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/";
 config.stopLiveFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/stopProcessing";
 config.stopDetectnetFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/stopProcessingDetectnet";
@@ -15,7 +15,7 @@ config.cameraConfigFile = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/
 
 config.livestreamingCamFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/'+'Cam"
 config.livestreamingDeviceInfo = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/Device_Information"
-config.livestreamingErrorURL = " http://52.177.169.81:5005/api/errorHandling"
+config.livestreamingErrorURL = config.host + "/api/errorHandling"
     // config.folderToWatch = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64";
     // config.cameraWatcherFolder = folderToWatch + "/Cameras/Cam";
     // config.sendResultURL = "http://52.177.169.81:5005/api/getResult"

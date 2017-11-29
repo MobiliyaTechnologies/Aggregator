@@ -46,9 +46,10 @@ def main():
 	# you may also want to remove whitespace characters like `\n` at the end of each line
 	d={}
 	for x in content:
-		key,value=x.split(" ")
-	
-		d.update({int(key): value})  
+	    if len(x) is not 0:
+    		key,value=x.split(" ")
+    	
+    		d.update({int(key): value})  
 	#if camera_id in d.keys():
 	#	print d[camera_id]
 

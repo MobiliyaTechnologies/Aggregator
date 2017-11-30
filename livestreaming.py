@@ -16,21 +16,16 @@ def main():
 	lines = read_in()
 	#print (lines)
 	#print (type(lines))
-
-	camera_list=[]
+	argument_list=[]
 	for item in lines:
-		#print (item)		
-		camera_list.append(int(item))
-			
-	for c in camera_list:
-		if camera_list.index(c)==0:
-			detection_id=int(c)			
-		else:
-			camera_id=int(c)
+		argument_list.append(item)
+
+	detection_id = int(argument_list[0])
+	camera_id = int(argument_list[1])
+	#print(detection_id,camera_id)
 
 	pid=str(os.getpid())
 
-	#change-check if already exists
 	with open("./stopProcessing", "a") as fd:
 		fd.write("\n"+str(camera_id)+" "+pid)
 
@@ -39,19 +34,17 @@ def main():
 	elif detection_id==1:
 		detection_type="vehicleDetection"
 	#print ("Detection Type_______________________________________________________________________________________",detection_type)
-	with open('/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/Device_Information') as f:
+	with open(argument_list[2]) as f:
 	    content = f.readlines()
 	#print content
 	content = [x.strip() for x in content] 
-	# you may also want to remove whitespace characters like `\n` at the end of each line
+
 	d={}
 	for x in content:
-	    if len(x) is not 0:
-    		key,value=x.split(" ")
-    	
-    		d.update({int(key): value})  
-	#if camera_id in d.keys():
-	#	print d[camera_id]
+		if len(x) is not 0:
+			key,value=x.split(" ")
+	
+			d.update({int(key): value})  
 
 	cam_url=d[camera_id]
 	print "URL to stream::",cam_url
@@ -65,19 +58,18 @@ def main():
 				timestamp = time1.strftime('%Y%m%d%H%M%S')
 				filename = str(camera_id)+"_"+detection_type+"_"+timestamp+".jpg"
 
-				file_path = '/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/'+'Cam'+str(camera_id)
+				file_path = argument_list[3]+str(camera_id)
 				if imgtemp is not None:
 					cv2.imwrite(os.path.join(file_path ,filename), imgtemp)
 					time.sleep(2)
 			else:
 				print "		DVR ERROR!!! "
-				url = "http://52.177.169.81:5005/api/errorHandling"
+				url = argument_list[4]
 				requests.post(url, {'DVRError':'DVR not responding!!'})
 				
 	except KeyboardInterrupt:
 		os.system("ps -ef |grep livestreaming.py | awk '{print $2}'| xargs kill -9")
 
-# Start process
+# # Start process
 if __name__ == '__main__':
     main()
-

@@ -11,7 +11,7 @@ def read_in():
 def main():
 	lines = read_in()
 	for item in lines:		
-		camera_id=int(item)
+		camera_id=str(item)
 	#camera_id=4
 	#print ("camera_id::",camera_id)
 	if os.path.exists('./stopProcessing'):
@@ -30,18 +30,18 @@ def main():
 			if len(x) is not 0:
 				#print ("X:::",x)
 				key,value=x.split(" ")
-				if camera_id==int(key):
+				if camera_id==str(key):
 					
-					pid=int(value)
+					pid=str(value)
 					#print ("PID ::",pid)
 					try:
-						os.system("kill -9 "+str(pid))
+						os.system("kill -9 "+pid)
 						print ("Kill")
 					except OSError:
 						print ("Couldn't kill !")
 				else:
 					#print key
-					fd.write(str(key)+" "+str(value)+"\n")
+					fd.write(str(key)+" "+pid+"\n")
 							
 		fd.close()
 	if os.path.exists('./stopProcessingDetectnet'):
@@ -60,18 +60,18 @@ def main():
 			if len(x) is not 0:
 				#print ("X:::",x)
 				key,value=x.split(" ")
-				if camera_id==int(key):
+				if camera_id==str(key):
 					
-					pid=int(value)
+					pid=str(value)
 					#print ("PID ::",pid)
 					try:
-						os.system("kill -9 "+str(pid))
+						os.system("kill -9 "+pid)
 						print ("Kill")
 					except OSError:
 						print ("Couldn't kill !")
 				else:
 					print key
-					fdD.write(str(key)+" "+str(value)+"\n")
+					fdD.write(str(key)+" "+pid+"\n")
 							
 		fdD.close()
 

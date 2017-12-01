@@ -20,52 +20,41 @@ def main():
 	for item in lines:
 		argument_list.append(item)
 
-	detection_id = int(argument_list[0])
-	camera_id = int(argument_list[1])
-	#print(detection_id,camera_id)
+	detection_id = str(argument_list[0])
+	camera_id = str(argument_list[1])
+	cam_url=str(argument_list[2])
+	print (argument_list[3])
+	print(detection_id,camera_id)
 
 	pid=str(os.getpid())
-
-	with open("./stopProcessing", "a") as fd:
-		fd.write("\n"+str(camera_id)+" "+pid)
-
-	if detection_id==0:
-		detection_type="humanDetection"
-	elif detection_id==1:
-		detection_type="vehicleDetection"
-	#print ("Detection Type_______________________________________________________________________________________",detection_type)
-	with open(argument_list[2]) as f:
-	    content = f.readlines()
-	#print content
-	content = [x.strip() for x in content] 
-
-	d={}
-	for x in content:
-		if len(x) is not 0:
-			key,value=x.split(" ")
 	
-			d.update({int(key): value})  
+	with open(argument_list[3], "a") as fd:
+		fd.write("\n"+camera_id+" "+pid)
 
-	cam_url=d[camera_id]
+	if detection_id=="0":
+		detection_type="humanDetection"
+	elif detection_id=="1":
+		detection_type="vehicleDetection"
+	print ("Detection Type_______________________________________________________________________________________",detection_type)
+
 	print "URL to stream::",cam_url
 	try:
 		while(True):
 			cam=cv2.VideoCapture(cam_url)
 			if cam.isOpened():
-				ret,imgtemp=cam.read();
+				ret,imgtemp=cam.read()
 	
 				time1=datetime.datetime.now()
 				timestamp = time1.strftime('%Y%m%d%H%M%S')
 				filename = str(camera_id)+"_"+detection_type+"_"+timestamp+".jpg"
 
-				file_path = argument_list[3]+str(camera_id)
+				file_path = argument_list[4]+str(camera_id)
+				#print "FILEPATH:::",file_path
 				if imgtemp is not None:
 					cv2.imwrite(os.path.join(file_path ,filename), imgtemp)
 					time.sleep(2)
-			else:
-				print "		DVR ERROR!!! "
-				url = argument_list[4]
-				requests.post(url, {'DVRError':'DVR not responding!!'})
+			else :
+				print "IN Livestream :: ERROR"
 				
 	except KeyboardInterrupt:
 		os.system("ps -ef |grep livestreaming.py | awk '{print $2}'| xargs kill -9")

@@ -23,6 +23,23 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
+
+require('getmac').getMac(function(err,macAddress)
+{
+    var post1={"macId":macAddress, "availability":"yes","capacity":"3"};
+    var options={
+		url:config.getJetsonStatusURL,
+		method: 'POST',
+		json:post1
+		};
+     request(options, function (error, response, body) 
+     { 
+	console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.jetsonId); 
+	var jetsonId=response.body.jetsonId;
+     });
+	
+});
+
 //Start JSON Watcher
 /*
 var watcher = require('child_process').spawn('python',
@@ -50,6 +67,7 @@ client.on('connect', function() {
     client.subscribe('getRawImage');
     client.subscribe('stopCamera');
     client.subscribe('stopAllCamera');
+    client.subscribe('cameraUrls');
     //stop any old process
     stopAllCamera();
 });
@@ -79,6 +97,7 @@ client.on('message', function(topic, message) {
                 console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
                 break;
             }
+/*
         case 'updateDeviceList':
             {
                 //console.log(message.toString());
@@ -87,6 +106,7 @@ client.on('message', function(topic, message) {
                 console.log("MQTT==================updateDeviceList Done!!\n-----------------------------------\n");
                 break;
             }
+*/
         case 'boundingBox':
             {
                 //console.log(message.toString());
@@ -103,6 +123,9 @@ client.on('message', function(topic, message) {
             }
         case 'getRawImage':
             {
+
+		
+
                 //console.log(message.toString());
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -118,6 +141,7 @@ client.on('message', function(topic, message) {
             {
                 //console.log(message.toString());
                 var parsedJson = parseJson(message.toString());
+		console.log(parsedJson);
                 var camId = parsedJson.camId;
                 var options = {
                     url: config.stopCameraURL,
@@ -144,6 +168,19 @@ client.on('message', function(topic, message) {
                 console.log("MQTT==================stopAllCamera Done!!\n-----------------------------------\n");
                 break;
             }
+        case 'cameraUrls':
+		    {
+			//var rtspArray = [{ rtspUrl : 'rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=3&subtype=0'},{ rtspUrl : 'rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=94&subtype=0'}];
+
+			//console.log("Alaaaaaaaaa re :: "+JSON.stringify(JSON.parse(message.toString())));
+		 	cameraUrls(JSON.parse(message.toString()),function(resultArray){
+				//console.log("CAM STATUS RESULT :::"+ resultArray);
+				console.log("Publishing Online Devices....")
+				client.publish("cameraStatus",resultArray);
+				
+			});
+		        break;
+		}
         default:
             {
                 console.log("\n Topic:: " + topic + " not handled!!");
@@ -153,31 +190,31 @@ client.on('message', function(topic, message) {
 
 //Functions
 var addCamera = function(message) {
-    console.log("API CALL -updateDeviceList", message);
+    console.log("API CALL -addCamera", message);
     var parsedJson = parseJson(message);
-    //console.log("\n  New Device to test in the list::", parsedJson);
+    /*
+        console.log("\n  New Device to test in the list::", parsedJson);
+    
+        var Device_Information_temp = "./Device_Information_temp"
+        var device_information = parsedJson.deviceType + "\n" + parsedJson.deviceName + "\n" + parsedJson.deviceId + "\n" + parsedJson.streamingUrl + "\n" + parsedJson.location + "\n" + parsedJson.technicalInfo;
+        //console.log("\nDevice_Information:::",device_information);
+        fs.writeFileSync(Device_Information_temp, device_information);
 
-    var Device_Information_temp = "./Device_Information_temp"
-    var device_information = parsedJson.deviceType + "\n" + parsedJson.deviceName + "\n" + parsedJson.deviceId + "\n" + parsedJson.streamingUrl + "\n" + parsedJson.location + "\n" + parsedJson.technicalInfo;
-    //console.log("\nDevice_Information:::",device_information);
-    fs.writeFileSync(Device_Information_temp, device_information);
 
-/*
-    var python = require('child_process').spawn('python', ["testDevice.py"]);
-    var output = "";
-    python.stdout.on('data', function(data) { output = data });
-    python.on('close', function(code) {
-        var body = output;
-        console.log("  Device Test Results::", output);
-        var d = { "flag": output.toString().replace(/\r?\n|\r/g, "") };
-        var dd = JSON.stringify(d);
+        var python = require('child_process').spawn('python', ["testDevice.py"]);
+        var output = "";
+        python.stdout.on('data', function(data) { output = data });
+        python.on('close', function(code) {
+            var body = output;
+            console.log("  Device Test Results::", output);
+            var d = { "flag": output.toString().replace(/\r?\n|\r/g, "") };
+            var dd = JSON.stringify(d);
 
-        console.log(typeof(dd));
-        console.log("Data::", dd);
-        client.publish('addCameraResponse', dd);
-    });
-*/
-
+            console.log(typeof(dd));
+            console.log("Data::", dd);
+            client.publish('addCameraResponse', dd);
+        });
+    */
 	var pyshelltest = new PythonShell("testDevice.py");
 	var deviceArray=[];
 	deviceArray.push(parsedJson.streamingUrl);
@@ -186,28 +223,28 @@ var addCamera = function(message) {
 	console.log(deviceArray);
 
 	pyshelltest.on('message', function (message) {
-	console.log(message);
-	var body = message;
-        console.log("  Device Test Results::", message);
-        var d = { "flag": message.toString().replace(/\r?\n|\r/g, "") };
-        var dd = JSON.stringify(d);
-
-        console.log(typeof(dd));
-        console.log("Data::", dd);
-        client.publish('addCameraResponse', dd);
-	console.log(typeof(message));
+	    console.log(message);
+        //console.log("  Device Test Results::", message);
+        var deviceResult = { "flag": message.toString().replace(/\r?\n|\r/g, "") };
+        var strdeviceResult = JSON.stringify(deviceResult);
+        //console.log("Data::", strdeviceResult);
+        client.publish('addCameraResponse', strdeviceResult);
 	});
 
 	pyshelltest.end(function (err) {
-	    if (err){
-		throw err;
-	    };
-	    
-	    console.log('finished');
+        if (err)
+        {
+		    console.log("   Python result:: Python Error in adding camera in testDevice.py file!!")
+	    }
+        else
+        {
+            console.log("   Python result:: Device Testing Done");   
+        }
 	});
 
 }
 
+/*
 var updateDeviceList = function(message) {
     console.log("API CALL -updateDeviceList");
 
@@ -225,15 +262,18 @@ var updateDeviceList = function(message) {
         }
     });
 }
+*/
 
 var checkForExistingEntries = function(camId, callback) {
 
-    fs.open('./bboxdata', 'r', function(err, fd) {
-        if (err) {
+    fs.open(config.bboxData, 'r', function(err, fd) {
+        if (err) 
+        {
             console.log("ERROR FILE READING");
             callback(err);
-        } else {
-            var device_data = fs.readFileSync("./bboxdata").toString().split('\n');
+        } else 
+        {
+            var device_data = fs.readFileSync(config.bboxData).toString().split('\n');
 
             //console.log("After split : "+device_data.length);
             var deviceUpdateList = [];
@@ -269,31 +309,32 @@ var checkForExistingEntries = function(camId, callback) {
     });
 }
 
-var startLiveStreaming = function(camId, detection_type) {
+var startLiveStreaming = function(camId, detection_type,streamingUrl) {
 
-    var pyshell = new PythonShell('livestreaming.py');
-    var array = [];
-    array.push(detection_type)
-    array.push(camId);
-    array.push(config.livestreamingDeviceInfo, config.livestreamingCamFolder, config.livestreamingErrorURL);
-    console.log("Array Pushed ::",array);
-    var datastreaming = JSON.stringify(array);
+     var pyshell = new PythonShell('livestreaming.py');
 
-    console.log("Data to livestream::", datastreaming);
-    console.log("Starting live streaming now!!");
-    pyshell.send(datastreaming);
+     var array = [];
+     array.push(detection_type,camId,streamingUrl,config.stopProcessing,config.livestreamingCamFolder);
+     var dataStreaming = JSON.stringify(array);
 
-    pyshell.on('message', function(message) {
-        console.log(message);
-    });
+     console.log("  Data to livestream::", dataStreaming);
+     console.log("  Starting live streaming now!!");
+     pyshell.send(dataStreaming);
 
-    pyshell.end(function(err) {
+     pyshell.on('message', function(message) {
+         console.log(message);
+     });
+
+     pyshell.end(function(err) {
         if (err) {
-            throw err;
-        };
-        console.log('finished the python script');
-    });
-}
+		    console.log("   Python result:: Python Error in starting livestream (livestreaming.py file)!!",err);
+        }
+        else
+        {
+            console.log("   Python result:: Device Testing Done");   
+        }
+     });
+ }
 
 var createConfigurationFiles = function(camId, detection_type, boxes, parsedJson) {
     //To refer current bounding box
@@ -321,6 +362,7 @@ var boundingBox = function(message) {
     console.log("\n  New bounding boxes::", parsedJson);
 
     var camId = parsedJson.camId;
+    var streamingUrl = parsedJson.streamingUrl;
     console.log("\n  CamId:::", camId);
 
     camera_folder = config.camFolder + 'Cam' + camId;
@@ -329,7 +371,7 @@ var boundingBox = function(message) {
     {*/
     mkdirp(camera_folder, function(err) {
         if (err) {
-            return console.error(err);
+        console.log('error in creating folder');
         }
         console.log("Directory created successfully!");
     });
@@ -353,7 +395,7 @@ var boundingBox = function(message) {
 
         var added_bounding_boxes = []
 
-        var bboxdata = './bboxdata';
+        var bboxdata = config.bboxData;
 
         fs.open(bboxdata, 'r', function(err, fd) {
             if (err) {
@@ -377,7 +419,7 @@ var boundingBox = function(message) {
             }
         });
 
-        startLiveStreaming(camId, detection_type); //,function(){console.log("BACK from STREAMING!!");}
+        startLiveStreaming(camId, detection_type,streamingUrl); //,function(){console.log("BACK from STREAMING!!");}
         createConfigurationFiles(camId, detection_type, boxes, parsedJson); //,function(){console.log("BACK from STREAMING!!");}
 
         console.log("_______________________________JETSON::DETECTNET-CONSOLE OUTPUT______________________________________");
@@ -399,46 +441,53 @@ var boundingBox = function(message) {
 }
 
 var getRawImage = function(message) {
-    var pyshell = new PythonShell('getRawImage.py');
-    parsedJson = parseJson(message);
+     var pyshell = new PythonShell('getRawImage.py');
+     parsedJson = parseJson(message);
 
-    feature = parsedJson.feature;
-    camId = parsedJson.camId;
+     var feature = parsedJson.feature;
+     var camId = parsedJson.camId;
+     
+     var streamingUrl = parsedJson.streamingUrl;
+     //Config change
+     console.log(parsedJson);
+     camera_folder = config.camFolder + 'Cam' + camId;
 
-    camera_folder = config.camFolder + 'Cam' + camId;
+     /*if (!fs.existsSync(camera_folder)) 
+     {*/
+     mkdirp(camera_folder, function(err) {
+         if (err) 
+         {
+             console.log(err);
+         }
+         console.log("Directory created successfully!");
+     });
+     //}
 
-    /*if (!fs.existsSync(camera_folder)) 
-    {*/
-    mkdirp(camera_folder, function(err) {
-        if (err) {
-            return console.error(err);
-        }
-        console.log("Directory created successfully!");
-    });
-    //}
+     var array = [];
+     if (feature == 'humanDetection') {
+         array.push("0");
+     } else {
+         array.push("1");
+     }
+     array.push(camId,streamingUrl,config.getRawImageUploadURL);
+     console.log("data sent::",array);
+     var deviceData = JSON.stringify(array);
+     pyshell.send(deviceData);
+     pyshell.on('message', function(message) {
+         console.log(message);
+     });
 
-    var array = [];
-    if (feature == 'humanDetection') {
-        array.push("0");
-    } else {
-        array.push("1");
-    }
-    array.push(camId);
-    cam_arr = JSON.stringify(array)
-    pyshell.send(cam_arr);
-    pyshell.on('message', function(message) {
-        console.log(message);
-    });
-
-    pyshell.end(function(err) {
-        if (err) {
-            throw err;
+     pyshell.end(function(err) {
+        if (err) 
+        {
+		    console.log("   Python result:: Python Error in getRawImage (livestreaming.py file)!!")
         };
-        console.log('finished the python script');
+        console.log("   Python result:: Device Testing Done");   
     });
-}
+ }
 
-var stopCamera = function(camId, callback) {
+
+ var stopCamera = function(camId, callback) {
     console.log('  Stopping Camera:: ' + camId);
     var pyshell = new PythonShell('stopCamera.py');
     //var pyshell = new PythonShell('stopAllCamera.py');
@@ -454,9 +503,12 @@ var stopCamera = function(camId, callback) {
     });
 
     pyshell.end(function(err) {
-        if (err) {
-            throw err;
-        } else {
+        if (err) 
+        {
+            console.log("Error in stopping camera");
+        } 
+        else 
+        {
             console.log('  STOPPED the Camera:: ' + camId);
         };
         callback();
@@ -476,6 +528,30 @@ var stopAllCamera = function() {
     if (fs.existsSync(stopProcessingDetectnet)) {
         fs.unlinkSync(stopProcessingDetectnet);
     }
+}
+
+var cameraUrls = function(rtspArray, callback){
+	var statusArray = [];
+	var pyshell = new PythonShell('getCameraStatus.py');
+	
+    pyshell.send(JSON.stringify(rtspArray));
+    pyshell.on('message', function(message) {
+        //console.log("CAMERA STATUS of:::::",JSON.stringify(message));
+        statusArray = JSON.stringify(message);
+    });
+
+    pyshell.end(
+	function(err) {
+        if (err) {
+            console.log("Not Done!!");
+		
+        } else {
+            console.log('After cam status');
+		callback(statusArray);
+	
+        }
+	
+    });
 }
 
 var port = config.port;

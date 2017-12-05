@@ -12,7 +12,7 @@ var Type = require('type-of-is');
 var mkdirp = require('mkdirp');
 var mqtt = require('mqtt');
 var request = require('request');
-
+var serialNumber = require('serial-number');
 var stopProcessing = config.stopLiveFile;
 var stopProcessingDetectnet = config.stopDetectnetFile;
 var watcherFile = config.uploadImageWatcher;
@@ -23,10 +23,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
-
-require('getmac').getMac(function(err,macAddress)
-{
-    var post1={"macId":macAddress, "availability":"yes","capacity":"3"};
+serialNumber(function (err, value) {
+    var post1={"macId":value, "availability":"yes","capacity":"3"};
     var options={
 		url:config.getJetsonStatusURL,
 		method: 'POST',
@@ -37,7 +35,6 @@ require('getmac').getMac(function(err,macAddress)
 	console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.jetsonId); 
 	var jetsonId=response.body.jetsonId;
      });
-	
 });
 
 //Start JSON Watcher

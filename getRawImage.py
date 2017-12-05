@@ -25,7 +25,7 @@ def main():
 	if cam.isOpened():
 		ret,img = cam.read()
 		
-		filename = "raw.jpg"
+		filename = camera_id+".jpg"
 
 		cv2.imwrite(os.path.join("." ,filename), img)
 

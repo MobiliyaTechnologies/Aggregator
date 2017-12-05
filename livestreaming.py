@@ -4,6 +4,7 @@ import threading
 import datetime
 import os
 import time
+import requests
 
 #Read data from stdin
 def read_in():
@@ -39,20 +40,40 @@ def main():
 
 	print "URL to stream::",cam_url
 	try:
+		#cam=cv2.VideoCapture(cam_url)
+		#cam.set(cv2.cv.CV_CAP_PROP_FPS, 5)
 		while(True):
 			cam=cv2.VideoCapture(cam_url)
 			if cam.isOpened():
 				ret,imgtemp=cam.read()
-	
-				time1=datetime.datetime.now()
-				timestamp = time1.strftime('%Y%m%d%H%M%S')
-				filename = str(camera_id)+"_"+detection_type+"_"+timestamp+".jpg"
+				
+				#time1=datetime.datetime.now()
+				#timestamp = time1.strftime('%Y%m%d%H%M%S')
+				timestamp =  int(round(time.time() * 1000))
+
+				filename = str(camera_id)+"_"+detection_type+"_"+str(timestamp)+".jpg"
 
 				file_path = argument_list[4]+str(camera_id)
 				#print "FILEPATH:::",file_path
 				if imgtemp is not None:
-					cv2.imwrite(os.path.join(file_path ,filename), imgtemp)
-					time.sleep(2)
+					cv2.imwrite(os.path.join(file_path ,filename), imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
+					#print "*****************IMWRITE FILENAME:::**************",filename
+					imgname=os.path.join(file_path ,filename)
+					#print imgname
+					time.sleep(0.2)
+					try:
+						url = "http://52.177.169.81:5005/api/getImage"
+						#print "IMAGE LOCATION:"
+						files = {'file': open(imgname, 'rb')}
+						requests.post(url, files=files)
+						#cv2.waitKey(100)
+					except requests.exceptions.Timeout:
+					    		print "**SERVER ERROR:: Timeout in sending Image"
+					except requests.exceptions.TooManyRedirects:
+					    		print "**SERVER ERROR:: Too many Redirects..!!"
+					except requests.exceptions.RequestException as e:
+					    		print e
+					time.sleep(0.6)
 			else :
 				print "IN Livestream :: ERROR"
 				

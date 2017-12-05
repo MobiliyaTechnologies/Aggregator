@@ -39,11 +39,13 @@ def main():
 	print ("Detection Type_______________________________________________________________________________________",detection_type)
 
 	print "URL to stream::",cam_url
+	cam=cv2.VideoCapture(cam_url)
+	frame_count =1
 	try:
 		#cam=cv2.VideoCapture(cam_url)
 		#cam.set(cv2.cv.CV_CAP_PROP_FPS, 5)
 		while(True):
-			cam=cv2.VideoCapture(cam_url)
+			#cam=cv2.VideoCapture(cam_url)
 			if cam.isOpened():
 				ret,imgtemp=cam.read()
 				
@@ -56,24 +58,26 @@ def main():
 				file_path = argument_list[4]+str(camera_id)
 				#print "FILEPATH:::",file_path
 				if imgtemp is not None:
-					cv2.imwrite(os.path.join(file_path ,filename), imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
-					#print "*****************IMWRITE FILENAME:::**************",filename
-					imgname=os.path.join(file_path ,filename)
-					#print imgname
-					time.sleep(0.2)
-					try:
-						url = "http://52.177.169.81:5005/api/getImage"
-						#print "IMAGE LOCATION:"
-						files = {'file': open(imgname, 'rb')}
-						requests.post(url, files=files)
-						#cv2.waitKey(100)
-					except requests.exceptions.Timeout:
-					    		print "**SERVER ERROR:: Timeout in sending Image"
-					except requests.exceptions.TooManyRedirects:
-					    		print "**SERVER ERROR:: Too many Redirects..!!"
-					except requests.exceptions.RequestException as e:
-					    		print e
-					time.sleep(0.6)
+					if ((frame_count%12)==0)
+						cv2.imwrite(os.path.join(file_path ,filename), imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
+						#print "*****************IMWRITE FILENAME:::**************",filename
+						imgname=os.path.join(file_path ,filename)
+						#print imgname
+						#time.sleep(0.2)
+						try:
+							url = "http://52.177.169.81:5005/api/getImage"
+							#print "IMAGE LOCATION:"
+							files = {'file': open(imgname, 'rb')}
+							requests.post(url, files=files)
+							#cv2.waitKey(100)
+						except requests.exceptions.Timeout:
+									print "**SERVER ERROR:: Timeout in sending Image"
+						except requests.exceptions.TooManyRedirects:
+									print "**SERVER ERROR:: Too many Redirects..!!"
+						except requests.exceptions.RequestException as e:
+									print e
+						#time.sleep(0.6)
+					frame_count = frame_count +1
 			else :
 				print "IN Livestream :: ERROR"
 				

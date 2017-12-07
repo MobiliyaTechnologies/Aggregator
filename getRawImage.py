@@ -27,7 +27,7 @@ def main():
 		
 		filename = camera_id+".jpg"
 
-		cv2.imwrite(os.path.join("." ,filename), img)
+		cv2.imwrite(os.path.join("." ,filename), img,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
 
 		#server url
 		try:

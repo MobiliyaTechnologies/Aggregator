@@ -169,7 +169,6 @@ client.on('message', function(topic, message) {
 		    {
 			//var rtspArray = [{ rtspUrl : 'rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=3&subtype=0'},{ rtspUrl : 'rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=94&subtype=0'}];
 
-			//console.log("Alaaaaaaaaa re :: "+JSON.stringify(JSON.parse(message.toString())));
 		 	cameraUrls(JSON.parse(message.toString()),function(resultArray){
 				//console.log("CAM STATUS RESULT :::"+ resultArray);
 				console.log("Publishing Online Devices....")
@@ -189,29 +188,7 @@ client.on('message', function(topic, message) {
 var addCamera = function(message) {
     console.log("API CALL -addCamera", message);
     var parsedJson = parseJson(message);
-    /*
-        console.log("\n  New Device to test in the list::", parsedJson);
-    
-        var Device_Information_temp = "./Device_Information_temp"
-        var device_information = parsedJson.deviceType + "\n" + parsedJson.deviceName + "\n" + parsedJson.deviceId + "\n" + parsedJson.streamingUrl + "\n" + parsedJson.location + "\n" + parsedJson.technicalInfo;
-        //console.log("\nDevice_Information:::",device_information);
-        fs.writeFileSync(Device_Information_temp, device_information);
-
-
-        var python = require('child_process').spawn('python', ["testDevice.py"]);
-        var output = "";
-        python.stdout.on('data', function(data) { output = data });
-        python.on('close', function(code) {
-            var body = output;
-            console.log("  Device Test Results::", output);
-            var d = { "flag": output.toString().replace(/\r?\n|\r/g, "") };
-            var dd = JSON.stringify(d);
-
-            console.log(typeof(dd));
-            console.log("Data::", dd);
-            client.publish('addCameraResponse', dd);
-        });
-    */
+  
 	var pyshelltest = new PythonShell("testDevice.py");
 	var deviceArray=[];
 	deviceArray.push(parsedJson.streamingUrl);
@@ -431,7 +408,7 @@ var boundingBox = function(message) {
             //console.log('stderr: ' + data);
         });
 
-        ls.on('close', function(code) {
+        ls.on('exit', function(code) {
             console.log('child process exited with code ' + code);
         });
     });

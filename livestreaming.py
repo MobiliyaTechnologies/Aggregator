@@ -20,7 +20,7 @@ def main():
 	argument_list=[]
 	for item in lines:
 		argument_list.append(item)
-
+	
 	detection_id = str(argument_list[0])
 	camera_id = str(argument_list[1])
 	cam_url=str(argument_list[2])
@@ -37,12 +37,12 @@ def main():
 	elif detection_id=="1":
 		detection_type="vehicleDetection"
 	print ("Detection Type_______________________________________________________________________________________",detection_type)
-
+	
 	print "URL to stream::",cam_url
 	cam=cv2.VideoCapture(cam_url)
 	frame_count =1
 	try:
-		#cam=cv2.VideoCapture(cam_url)
+		cam=cv2.VideoCapture(cam_url)
 		#cam.set(cv2.cv.CV_CAP_PROP_FPS, 5)
 		while(True):
 			#cam=cv2.VideoCapture(cam_url)

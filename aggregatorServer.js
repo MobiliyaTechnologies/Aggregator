@@ -31,9 +31,13 @@ serialNumber(function (err, value) {
 		json:post1
 		};
      request(options, function (error, response, body) 
-     { 
-	console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.jetsonId); 
-	var jetsonId=response.body.jetsonId;
+     {
+	if(error){
+		console.log("Error sending MacId");
+	}else{
+		console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.jetsonId); 
+		var jetsonId=response.body.jetsonId;
+	}
      });
 });
 

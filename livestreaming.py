@@ -57,7 +57,7 @@ def main():
 				file_path = argument_list[4]+str(camera_id)
 				#print "FILEPATH:::",file_path
 				if imgtemp is not None:
-					if(count_frames%75==0):
+					if(count_frames%25==0):
 						cv2.imwrite(os.path.join(file_path ,filename), imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
 						#print "*****************IMWRITE FILENAME:::**************",filename
 						imgname=os.path.join(file_path ,filename)

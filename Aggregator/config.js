@@ -4,7 +4,7 @@
 var config = {};
 
 config.port = 3001;
-config.host = "http://52.177.169.81:5008";
+config.host = "http://52.177.169.81:5005";
 config.mqttBroker = "mqtt://52.177.169.81:1885";
 config.mqttBrokerJetson="mqtt://10.9.42.223:1885";
 

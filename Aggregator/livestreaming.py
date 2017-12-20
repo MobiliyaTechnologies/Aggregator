@@ -43,7 +43,9 @@ def main():
 	count_frames = 1
 	try:
 		cam=cv2.VideoCapture(cam_url)
-
+		fps=int(cam.get(cv2.CAP_PROP_FPS))
+		print "FPS :: ",fps
+		#print "FPS :: "+type(fps)
 		#cam.set(cv2.cv.CV_CAP_PROP_FPS, 5)
 		while(True):
 			#cam=cv2.VideoCapture(cam_url)
@@ -63,9 +65,9 @@ def main():
 				ryncPath = os.getcwd()+filePathLocal 
 
 				if imgtemp is not None:
-					if(count_frames%25==0):
+					if(count_frames%30==0):
 						#print "FILEPATH:::",file_path
-						cv2.imwrite(file_path, imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
+						cv2.imwrite(file_path, imgtemp)
 						#print "*****************IMWRITE FILENAME:::**************",filename
 						rsyncCommand="rsync -avz -e ssh "+ryncPath+"/ "+jetsonFolderPath
 						#print rsyncCommand

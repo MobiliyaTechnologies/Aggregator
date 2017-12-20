@@ -94,17 +94,33 @@ app.post('/goLive',function(req,res){
 
 app.get('/cameras/stop',function(req,res){
 
-    let result = [];
-    let camId = req.query.camId;
-    liveCamIntervalArray.forEach(function(cam){
-      if(camId.includes(cam.camId)){
-        clearInterval(cam.intervalObj);
-        //to remove stopped live cam 
-        result.push({camId : cam.camId, camStatus : 'Stopped'});
-      }
-    });
+  let result = [];
+  let tempArr = liveCamIntervalArray.slice();
+  console.log("Base live cam :: "+JSON.stringify(liveCamIntervalArray));
+  let camId = req.query.camId;
+  tempArr.forEach(function(cam, i){
+    if(camId.includes(cam.camId)){
+      clearInterval(cam.intervalObj);
+      //to remove stopped live cam 
+      liveCamIntervalArray.splice(i,i+1);
+      result.push({camId : cam.camId, camStatus : 'Stopped'});
+    }
+  });
+    // let result = [];
+    // let camId = req.query.camId;
+   
+    // let tempArr = [];
+    // liveCamIntervalArray.forEach(function(cam){
+    //   if(camId.includes(cam.camId)){
+    //     clearInterval(cam.intervalObj);
+    //     //to remove stopped live cam 
+    //     tempArr.push(cam);
+    //     result.push({camId : cam.camId, camStatus : 'Stopped'});
+    //   }
+    // });
+    // liveCamIntervalArray =  liveCamIntervalArray.diff(tempArr);
     res.status(200).send(result);
-});
+  });
 
 app.get('/cameras/live',function(req,res){
   var result=[];
@@ -113,8 +129,6 @@ app.get('/cameras/live',function(req,res){
   });
   res.send(result);
 });
-
-
 
 app.listen(7000,function(){
   console.log("Started");

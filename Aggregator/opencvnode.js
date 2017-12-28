@@ -54,6 +54,7 @@ var app = require('express')();
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+var Rsync = require('rsync');
 
 var liveCamIntervalArray = [];
 
@@ -69,18 +70,27 @@ app.post('/goLive',function(req,res){
   //vCap.set(1, 20);
   if(vCap!=null) 
   {
-    console.log("Opened"+typeof(vCap)); 
+    console.log("FPS : "+fps); 
   } // loop through the capture
   vCap.set(2,24);
   // while (true ) {
+    var rsync = new Rsync()
+    .shell('ssh')
+    .flags('avz')
+    .source('/home/pramod/Desktop/SecurityAndSurveillance/jetson-device-client/Aggregator/f1/')
+    .destination('ubuntu@10.9.43.63:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/');
+
   var camInterval = setInterval(function(){
     // console.log("FrameRate", vCap.get(1));
     // console.log("FreamE:::::::::::::::::::::::::", vCap.get(1) % fps);
     let frame = vCap.read();
-    if (vCap.get(1) % fps == 0) {
+    if (vCap.get(1) % parseInt(fps) == 0) {
       console.log("WRITTEN IMAGE ",new Date());
-      cv.imwrite("/home/user/GitRepos/device-client/jetson-device-client/Aggregator/"+req.body.folder+"/" + new Date().getTime() + ".jpg", frame);
+      cv.imwrite("/home/pramod/Desktop/SecurityAndSurveillance/jetson-device-client/Aggregator/"+req.body.folder+"/" + new Date().getTime() + ".jpg", frame);
       // count++;
+        rsync.execute(function(error, code, cmd) {
+            console.log("RSync Done");
+        });
     }
   }, 1000/fps);
 
@@ -131,7 +141,7 @@ app.get('/cameras/live',function(req,res){
 });
 
 app.listen(7000,function(){
-  console.log("Started");
+  console.log("Started : ",__dirname);
 });
 // try
 // {

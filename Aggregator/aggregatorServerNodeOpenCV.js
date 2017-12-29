@@ -94,7 +94,7 @@ client.on('message', function (topic, message) {
             {
                 console.log("MESSAGE::", message.toString());
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-                    console.log("Publishing Online Devices....")
+                    console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
                 });
                 break;
@@ -185,7 +185,7 @@ var getRawImage = function (message) {
     parsedJson = parseJson(message);
 
     var feature = parsedJson.feature;
-    var camId = parsedJson.camId;
+    var camId = parsedJson.cameraId;
 
     var streamingUrl = parsedJson.streamingUrl;
     //Config change
@@ -310,13 +310,44 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl) {
             var base64Raw = base64_encode(imageFullPath);
             console.log("BASE 64::\n");
             base64Raw = "data:image/jpg;base64, " + base64Raw;
+
             /**
-             * to sync newly added file with jetson fs
+             * TODO : Plug to add multiple Detection api
              */
-            rsync.execute(function(error, code, cmd) {
-                console.log("RSync Done");
-                fs.unlinkSync(imageFullPath);
-            });
+            // rsync.execute(function(error, code, cmd) {
+            //     console.log("RSync Done");
+            //     fs.unlinkSync(imageFullPath);
+            // });
+            console.log("Detection type : ",detectionType);
+            switch(detectionType) {
+                case 'humanDetection':
+                    /**
+                     * to sync newly added file with jetson fs
+                     */
+                    rsync.execute(function(error, code, cmd) {
+                        console.log("RSync Done");
+                        fs.unlinkSync(imageFullPath);
+                    });
+                    break;
+                case 'faceDetection':
+                    var requestObj = request.post(config.cloudServiceUrl+ '?areaOfInterest=sampleAreas&targetUrl='+config.cloudServiceTargetUrl, function optionalCallback (err, httpResponse, body) {
+                        if (err) {
+                            return console.error('upload failed:', err);
+                        }
+                        
+                        console.log('Upload successful!  Server responded with:', body);
+                    });
+                    var form = requestObj.form();
+                    var files = fs.readdirSync("./Images");
+                    // console.log("--Attache File--",files[0]);
+                    form.append('file', 
+                    fs.createReadStream(imageFullPath).on('end', function () {
+                        console.log("--Image sent----");
+                    }));
+                    break;
+                default:
+                    console.log("Default Case executed");
+            }
             
             /**
              * send newly added image to web backend

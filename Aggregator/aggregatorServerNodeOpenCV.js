@@ -107,9 +107,9 @@ client.on('message', function (topic, message) {
                 var parsedJson = parseJson(sendData);
 
                 clientJetson.publish('boundingBoxOnPremise', message);
-                console.log("DATA from BBOX : "+sendData);
-                boundingBox(sendData, function (camId, detectionType, streamingUrl) {
-                    startLiveStreaming(camId, detectionType, streamingUrl)
+                console.log("DATAAAAA from BBOX : "+sendData);
+                boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes) {
+                    startLiveStreaming(camId, detectionType, streamingUrl, bboxes)
                 });
 
                 console.log("MQTT==================startStream Done!!\n-----------------------------------\n");
@@ -269,11 +269,16 @@ var cameraUrls = function (rtspArray, callback) {
     callback(rtspArray);
 }
 
-var startLiveStreaming = function (camId, detectionType, streamingUrl) {
+
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
     console.log("STREAMING URL ::: "+streamingUrl);
     const vCap = new cv.VideoCapture(streamingUrl); //'rtsp://komal:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=14&subtype=0'  
     var frameRate = vCap.get(1);
     var fps = vCap.get(5);
+    var interval = fps;
+    if(detectionType === "faceDetection"){
+        fps = fps;
+    }
     // fps = fps/3;
     console.log("FPS : "+fps);
     var pathToCamFolder = __dirname + config.livestreamingCamFolder + camId;
@@ -299,7 +304,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl) {
         if (vCap.get(1) % parseInt(fps) == 0) {
 
             console.log("WRITTEN IMAGE ", new Date());
-            var imageName = camId + "_" + detectionType + "_" + new Date().getTime() + ".jpg";
+            var timestamp  =  new Date().getTime();
+            var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
             var imageFullPath = filePath + imageName;
 
             /**to write captured image of cam into local fs */
@@ -330,23 +336,26 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl) {
                     });
                     break;
                 case 'faceDetection':
-                    var requestObj = request.post(config.cloudServiceUrl+ '?areaOfInterest=sampleAreas&targetUrl='+config.cloudServiceTargetUrl, function optionalCallback (err, httpResponse, body) {
+                    var requestObj = request.post(config.cloudServiceUrl , function optionalCallback(err, httpResponse, body) {
                         if (err) {
-                            return console.error('upload failed:', err);
+                            var pathToCamFolder = __dirname + config.livestreamingCamFolder + camId;
+                            return console.error('Failed to connect to compute engine:', err);
                         }
-                        
-                        console.log('Upload successful!  Server responded with:', body);
+
+                        console.log('Upload successful!  Compute engine respond : ', body);
                     });
                     var form = requestObj.form();
-                    var files = fs.readdirSync("./Images");
-                    // console.log("--Attache File--",files[0]);
-                    form.append('file', 
-                    fs.createReadStream(imageFullPath).on('end', function () {
-                        console.log("--Image sent----");
-                    }));
+                    form.append('areaOfInterest',JSON.stringify(bboxes));
+                    form.append('targetUrl',config.cloudServiceTargetUrl);
+                    form.append('timestamp',timestamp);
+                    form.append('file',
+                        fs.createReadStream(imageFullPath).on('end', function () {
+                            console.log("--Image sent----");
+                        })
+                    );
                     break;
                 default:
-                    console.log("Default Case executed");
+                    console.log("Warning : Default Case executed !");
             }
             
             /**
@@ -373,7 +382,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl) {
             })
             
         }
-    }, 1000 / fps);
+    }, 1000 / interval);
 
     /**To maintain live cam array */
     liveCamIntervalArray.push({
@@ -387,13 +396,8 @@ var boundingBox = function (message, callback) {
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var cameraFolder = config.camFolder + '/Cam' + camId;
-    var detectionTypeStr = parsedJson.feature;
-    var detectionType = "";
-    if (detectionTypeStr == 'humanDetection') {
-        detectionType = "0";
-    } else {
-        detectionType = "1";
-    }
+    var detectionType = parsedJson.feature;
+    
     console.log("Creating cam folder");
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
@@ -401,11 +405,11 @@ var boundingBox = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("Directory created successfully!");
-                callback(camId, detectionType, streamingUrl, cameraFolder);
+                callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
             }
         });
     } else
-        callback(camId, detectionType, streamingUrl, cameraFolder);
+        callback(camId, detectionType, streamingUrl, parsedJson.Coords , cameraFolder);
 };
 
 var stopCamera = function (message, callback) {
@@ -438,3 +442,9 @@ var port = config.port;
 app.listen(3003, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
+
+
+
+// //{"Coords":[{"x":60,"y":26,"x2":763,"y2":481,"w":703,"h":455}],"frameWidth":{"width":780,"height":548.5},"feature":"humanDetection","camId":"5a4b1d19be689bcf20ff024b","streamingUrl":"rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=4&subtype=0","deviceName":"rece"}
+// var tempBbox =  [{"_id":120,"x":0,"y":0,"x2":1000,"y2":1000},{"_id":123,"x":1000,"y":0,"x2":2000,"y2":2000}];
+// startLiveStreaming("5a4b1d19be689bcf20ff024b","faceDetection", "rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=4&subtype=0",tempBbox);

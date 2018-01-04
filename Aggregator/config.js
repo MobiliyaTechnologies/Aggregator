@@ -16,7 +16,9 @@ config.mqttBroker = "mqtt://52.177.169.81:1887";
  * Target jetson path
  */
 config.jetsonFolderPath = "ubuntu@10.9.44.132:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-
+/**
+ * URL of VM to send images
+ */
 config.sendLiveStreamUploadURL = config.host + "/api/getImage";
 
 config.camFolder = "./Cameras";

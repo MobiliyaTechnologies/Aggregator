@@ -6,9 +6,7 @@ var bodyParser = require('body-parser');
 var cors = require('cors');
 var parseJson = require('parse-json');
 const fs = require('fs');
-var PythonShell = require('python-shell');
 var exec = require('child_process').exec;
-var Type = require('type-of-is');
 var mkdirp = require('mkdirp');
 var mqtt = require('mqtt');
 var request = require('request');
@@ -17,24 +15,15 @@ var jsonSize = require('json-size');
 var Rsync = require('rsync');
 
 var MQTTBroker = config.mqttBroker;
-var MQTTBrokerJetson = config.mqttBrokerJetson;
 
 var liveCamIntervalArray = [];
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-//app.use(bodyParser.json({limit: '50mb'}));
-// app.use(bodyParser.json({limit:1024102420, type:'application/json'}));
-// app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(cors());
 
 //Connect MQTT Broker
-var client = mqtt.connect('mqtt://52.177.169.81:1887');
-var clientJetson = mqtt.connect(MQTTBrokerJetson);
-
-clientJetson.on('connect', function () {
-    console.log("**ON PREMISE BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
-});
+var client = mqtt.connect(mqttBroker);
 
 //Subscriptions
 client.on('connect', function () {
@@ -65,13 +54,11 @@ client.on('message', function (topic, message) {
     switch (topic) {
         case '/':
             {
-                //console.log(message.toString());
                 console.log("MQTT==================Project Heimdall Aggregator Server Available to Respond!!\n-----------------------------------\n");
                 break;
             }
         case 'addCamera':
             {
-                //console.log(message.toString());
                 var newDevice = message.toString();
                 addCamera(newDevice);
                 console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
@@ -79,20 +66,17 @@ client.on('message', function (topic, message) {
             }
         case 'getRawImage':
             {
-                //console.log(message.toString());
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
                 var camId = parsedJson.camId;
-                // stopCamera(camId, function () {
                 getRawImage(message);
-                // });
 
                 console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
                 break;
             }
         case 'cameraUrls':
             {
-                console.log("MESSAGE::", message.toString());
+                // console.log("MESSAGE::", message.toString());
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
                     console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
@@ -106,8 +90,7 @@ client.on('message', function (topic, message) {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
 
-                clientJetson.publish('boundingBoxOnPremise', message);
-                console.log("DATAAAAA from BBOX : "+sendData);
+                //STOP camera call
                 boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes) {
                     startLiveStreaming(camId, detectionType, streamingUrl, bboxes)
                 });
@@ -123,26 +106,13 @@ client.on('message', function (topic, message) {
                 // console.log(parsedJson);
                 stopCamera(camIds, function (error) {
                     if (!error) {
-                        clientJetson.publish('stopCamera', message);
-                        console.log("MQTT==================Stop Camera Done!!\n-----------------------------------\n");
+                        console.log("MQTT==================Stopped the camera\n-----------------------------------\n");
+                        // var getLiveCameras =op Camera Done!!\n-----------------------------------\n");
                     }
                 });
                 break;
             }
-        // case 'stopAllCamera':
-        //     {
-        //         stopAllCamera();
-        //         var parsedJson = { 'xyz': 'cy' }
-        //         var options = {
-        //             url: config.stopAllCameraURL,
-        //             method: 'POST',
-        //             json: parsedJson
-        //         }
-        //         request(options, function() { console.log("Done!!"); });
-        //         clientJetson.publish('stopAllCamera', message);
-        //         console.log("MQTT==================stopAllCamera Done!!\n-----------------------------------\n");
-        //         break;
-        //     }
+       
         default:
             {
                 console.log("\n DEfault ::  Topic:: " + topic + " not handled!!");
@@ -154,7 +124,7 @@ client.on('message', function (topic, message) {
 var addCamera = function (message) {
     console.log("CALL -addCamera", message);
     var parsedJson = parseJson(message);
-    console.log("DEVICE ::", parsedJson);
+    //console.log("DEVICE ::", parsedJson);
     var streamingUrl = parsedJson.streamingUrl;
     try {
         const vCap = new cv.VideoCapture(streamingUrl);
@@ -181,17 +151,12 @@ var base64_encode = function (file) {
 }
 
 var getRawImage = function (message) {
-    var pyshell = new PythonShell(config.getRawImage);
     parsedJson = parseJson(message);
 
     var feature = parsedJson.feature;
-    var camId = parsedJson.cameraId;
-
+    var camId = parsedJson.camId;
     var streamingUrl = parsedJson.streamingUrl;
-    //Config change
-    console.log(parsedJson);
-    //camera_folder = config.camFolder /*+ 'Cam' + camId*/;
-
+  
     if (!fs.existsSync(config.camFolder)) {
         mkdirp(config.camFolder, function (err) {
             if (err) {
@@ -209,10 +174,10 @@ var getRawImage = function (message) {
             var rawImgName = "./" + camId + ".jpg";
             cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             var base64Raw = base64_encode(rawImgName);
-            console.log("BASE 64::\n");
+            //console.log("BASE 64::\n");
             base64Raw = "data:image/jpg;base64, " + base64Raw; //to remove and to implement on web side
 
-            //Sync           fforts are booked under the appropriate tasks (projects, bench or leaves etc.). Any leaves taken by you this month need to be reflected appropriately.
+            //Sync          
             var rawJsonBody = {
                 imgName: rawImgName,
                 imgBase64: base64Raw
@@ -220,11 +185,11 @@ var getRawImage = function (message) {
             //MQTT APPROACH
             console.log("SIZE :: ", jsonSize(rawJsonBody));
             var rawJsonBodyString = JSON.stringify(rawJsonBody);
-            //console.log(rawJsonBodyString);
             client.publish('rawMQTT', rawJsonBodyString);
             //HTTP
             /*
             console.log("BASE 64 Json");
+// var getLiveCameras =
             var options = {
                 url: config.getRawImageUploadURL,
                 method: 'POST',
@@ -240,6 +205,7 @@ var getRawImage = function (message) {
                 console.log(result);
             })
             .catch(
+// var getLiveCameras =
                 function(err){
                 console.log(err);
                 }
@@ -269,8 +235,7 @@ var cameraUrls = function (rtspArray, callback) {
     callback(rtspArray);
 }
 
-
-var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
     console.log("STREAMING URL ::: "+streamingUrl);
     const vCap = new cv.VideoCapture(streamingUrl); //'rtsp://komal:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=14&subtype=0'  
     var frameRate = vCap.get(1);
@@ -281,17 +246,17 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
     }
     // fps = fps/3;
     console.log("FPS : "+fps);
-    var pathToCamFolder = __dirname + config.livestreamingCamFolder + camId;
-    var filePath = pathToCamFolder + "/";
+    var filePath = cameraFolder + "/";
     if (vCap != null) {
         console.log("Stream Opened Successfully");
     }
 
     /** Rsync init */
+// var getLiveCameras =
     var rsync = new Rsync()
     .shell('ssh')
     .flags('avz')
-    .source(pathToCamFolder + "/")
+    .source(filePath)
     .destination(config.jetsonFolderPath + camId);
    
     /**
@@ -303,7 +268,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
 
         if (vCap.get(1) % parseInt(fps) == 0) {
 
-            console.log("WRITTEN IMAGE ", new Date());
+            console.log("WRITTEN IMAGE at time :: ", new Date());
             var timestamp  =  new Date().getTime();
             var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
             var imageFullPath = filePath + imageName;
@@ -318,7 +283,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
             /**
-             * TODO : Plug to add multiple Detection api
+             * TODO : Plug to add multipl
+// var getLiveCameras =e Detection api
              */
             // rsync.execute(function(error, code, cmd) {
             //     console.log("RSync Done");
@@ -331,14 +297,14 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
                      * to sync newly added file with jetson fs
                      */
                     rsync.execute(function(error, code, cmd) {
-                        console.log("RSync Done");
+                        console.log("RSynnc");
+                        // var getLiveCameras =c Done");
                         fs.unlinkSync(imageFullPath);
                     });
                     break;
                 case 'faceDetection':
                     var requestObj = request.post(config.cloudServiceUrl , function optionalCallback(err, httpResponse, body) {
                         if (err) {
-                            var pathToCamFolder = __dirname + config.livestreamingCamFolder + camId;
                             return console.error('Failed to connect to compute engine:', err);
                         }
 
@@ -355,7 +321,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
                     );
                     break;
                 default:
-                    console.log("Warning : Default Case executed !");
+                    console.log("Warning : Default Case executed (feature specified not served)!");
             }
             
             /**
@@ -392,13 +358,14 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes) {
 }
 
 var boundingBox = function (message, callback) {
+
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
-    var cameraFolder = config.camFolder + '/Cam' + camId;
+    var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
     
-    console.log("Creating cam folder");
+    console.log("Creating camID folder");
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
             if (err) {
@@ -414,20 +381,17 @@ var boundingBox = function (message, callback) {
 
 var stopCamera = function (message, callback) {
     var camIds = parseJson(message);
-    // let result = [];
     let tempArr = liveCamIntervalArray.slice();
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             clearInterval(cam.intervalObj);
             //to remove stopped live cam 
             liveCamIntervalArray.splice(i, i + 1);
-            // result.push({camId : cam.camId, camStatus : 'Stopped'});
         }
     });
     callback(null);
 };
-
-// var getLiveCameras = 
+ 
 app.get('/cameras/live',function (req,res) {
     var result = [];
     liveCamIntervalArray.forEach(function (cam) {
@@ -436,15 +400,7 @@ app.get('/cameras/live',function (req,res) {
     res.send(result);
 });
 
-
-
 var port = config.port;
 app.listen(3003, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
-
-
-
-// //{"Coords":[{"x":60,"y":26,"x2":763,"y2":481,"w":703,"h":455}],"frameWidth":{"width":780,"height":548.5},"feature":"humanDetection","camId":"5a4b1d19be689bcf20ff024b","streamingUrl":"rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=4&subtype=0","deviceName":"rece"}
-// var tempBbox =  [{"_id":120,"x":0,"y":0,"x2":1000,"y2":1000},{"_id":123,"x":1000,"y":0,"x2":2000,"y2":2000}];
-// startLiveStreaming("5a4b1d19be689bcf20ff024b","faceDetection", "rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=4&subtype=0",tempBbox);

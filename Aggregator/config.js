@@ -4,14 +4,17 @@
 var config = {};
 
 config.port = 3001;
-config.host = "http://52.177.169.81:5008";
 
-config.cloudComputeEngine = "http://52.177.169.81:5003";
 /**
  * BROKERS address
  * mqttBroker : Aggregator and WebApp communication
  */
 config.mqttBroker = "mqtt://52.177.169.81:1887";
+
+config.host = "http://52.177.169.81:5008";
+
+config.cloudComputeEngine = "http://52.177.169.81:5003";
+
 /**
  * Target jetson path
  */

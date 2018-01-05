@@ -1,29 +1,24 @@
-var config = {};
-
-config.port = 3001;
-config.host = "http://52.177.169.81:5005";
-config.mqttBroker = "mqtt://52.177.169.81:1885";
-config.stopCameraURL = config.host + "/api/resetCameraStatus"
-config.stopAllCameraURL = config.host + "/api/resetAllCameraStatus"
-config.camFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/";
-config.stopLiveFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessing";
-config.stopDetectnetFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessingDetectnet";
-config.uploadImageWatcher = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/json_watcher.py";
-config.bboxFile = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/bbox";
-config.cameraConfigFile = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/config";
-config.getJetsonStatusURL = 'http://52.177.169.81:5005/api/getJetson';
-config.bboxData = "./bboxdata"
-config.stopProcessing = "./stopProcessing"
-config.livestreamingCamFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-config.livestreamingDeviceInfo = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/Device_Information";
-config.livestreamingErrorURL = config.host + "/api/errorHandling"
-
-config.testDevive_DeviceInfo ="/home/ubuntu/jetson-device-client/NodeRest/Device_Information_temp";
-
-config.getRawImageUploadURL = config.host + "/api/Upload";
-    // config.folderToWatch = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64";
-    // config.cameraWatcherFolder = folderToWatch + "/Cameras/Cam";
-    // config.sendResultURL = "http://52.177.169.81:5005/api/getResult"
-
-
+var config = {
+    AzureServerUrl:"",
+    Version:"1.01",
+    mqttBroker:"mqtt://52.177.169.81:1885",
+    host:"http://52.177.169.81:5005",
+    port:3001,
+    stopCameraURL:"/api/resetCameraStatus",
+    stopAllCameraURL:"/api/resetAllCameraStatus",
+    camFolder:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/",
+    stopLiveFile:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessing",
+    stopDetectnetFile:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessingDetectnet",
+    uploadImageWatcher:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/json_watcher.py",
+    bboxFile:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/bbox",
+    cameraConfigFile:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/config",
+    getJetsonStatusURL:'http://52.177.169.81:5005/api/getJetson',
+    bboxData:"./bboxdata",
+    stopProcessing:"./stopProcessing",
+    livestreamingCamFolder:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam",
+    livestreamingDeviceInfo:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/Device_Information",
+    livestreamingErrorURL:"/api/errorHandling",
+    testDevive_DeviceInfo:"/home/ubuntu/jetson-device-client/NodeRest/Device_Information_temp",
+    getRawImageUploadURL:"/api/Upload",
+};
 module.exports = config;

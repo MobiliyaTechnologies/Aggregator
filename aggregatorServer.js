@@ -80,7 +80,7 @@ client.on('message', function (topic, message) {
         case 'cameraUrls':
             {
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-                    console.log("Publishing Online Devices....",resultArray)
+                    //console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
                 });
                 console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");

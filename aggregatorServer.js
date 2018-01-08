@@ -20,8 +20,8 @@ app.use(cors());
 
 var liveCamIntervalArray = [];
 
-var MQTTBroker = config.mqttBroker;
 //Connect MQTT Broker
+var MQTTBroker = config.mqttBroker;
 var client = mqtt.connect(MQTTBroker);
 
 //Subscriptions
@@ -31,7 +31,6 @@ client.on('connect', function () {
     client.subscribe('addCamera');
     client.subscribe('getRawImage');
     client.subscribe('cameraUrls');
-    //_____________JETSON COMMUNICATION_____________
     client.subscribe('stopCamera');
     client.subscribe('boundingBox');
     client.subscribe('stopAllCamera');
@@ -55,7 +54,6 @@ client.on('message', function (topic, message) {
             }
         case 'addCamera':
             {
-                //
                 var newDevice = message.toString();
                 addCamera(newDevice);
                 console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
@@ -73,7 +71,6 @@ client.on('message', function (topic, message) {
             }
         case 'cameraUrls':
             {
-                // console.log("MESSAGE::", message.toString());
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
                     console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
@@ -83,7 +80,6 @@ client.on('message', function (topic, message) {
 
         case 'boundingBox':
             {
-                //console.log(message.toString());
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
 
@@ -98,9 +94,8 @@ client.on('message', function (topic, message) {
 
         case 'stopCamera':
             {
-                //console.log("Payload for Stop camera :"+message.toString());
                 var camIds = message.toString();
-                console.log("\n*Stop cameras ::",camIds);
+                console.log("\n*Stop these cameras ::",JSON.stringify(camIds));
                 stopCamera(camIds, function (error) {
                     if (!error) {
                         console.log("MQTT==================Stopped the camera\n-----------------------------------\n");
@@ -116,11 +111,15 @@ client.on('message', function (topic, message) {
     }
 });
 
-//Functions
-
+//________________________Functions________________________
+/**
+ * to test device if it can stream 
+ * @param {*string} message 
+ */
 var addCamera = function (message) {
     console.log("CALL -addCamera");
-
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
     console.log("DEVICE URL to test::", streamingUrl);
@@ -153,6 +152,7 @@ var base64_encode = function (file) {
 
 var getRawImage = function (message) {
     console.log("CALL -getRawImage");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     parsedJson = parseJson(message);
 
     var feature = parsedJson.feature;

@@ -111,6 +111,20 @@ client.on('message', function (topic, message) {
     }
 });
 
+/**
+ * 
+ */
+//creating basedirectory 
+if (!fs.existsSync(config.camFolder)) {
+    mkdirp(config.camFolder, function (err) {
+        if (err) {
+            console.log(err);
+        } else
+            console.log("Base directory created :",config.camFolder);
+    });
+}
+
+
 //________________________Functions________________________
 /**
  * to test device if it can stream 
@@ -119,7 +133,7 @@ client.on('message', function (topic, message) {
 var addCamera = function (message) {
     console.log("CALL -addCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    
+
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
     console.log("DEVICE URL to test::", streamingUrl);
@@ -143,6 +157,10 @@ var addCamera = function (message) {
     client.publish('addCameraResponse', strdeviceResult);
 }
 
+/**
+ * to convert image to base64 format
+ * @param {*string} file image filepath to be converted to base64  
+ */
 var base64_encode = function (file) {
     // read binary data
     var bitmap = fs.readFileSync(file);
@@ -150,6 +168,10 @@ var base64_encode = function (file) {
     return new Buffer(bitmap).toString('base64');
 }
 
+/**
+ * to get raw image of camera device
+ * @param {*string} message camera device data to get raw image 
+ */
 var getRawImage = function (message) {
     console.log("CALL -getRawImage");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -159,14 +181,6 @@ var getRawImage = function (message) {
     var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
   
-    if (!fs.existsSync(config.camFolder)) {
-        mkdirp(config.camFolder, function (err) {
-            if (err) {
-                console.log(err);
-            } else
-                console.log("In GetRawImageDirectory created successfully!");
-        });
-    }
     try {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap != null) {

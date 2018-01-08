@@ -75,6 +75,7 @@ client.on('message', function (topic, message) {
                     console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
                 });
+                console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
                 break;
             }
 
@@ -181,16 +182,18 @@ var getRawImage = function (message) {
     var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
   
-    try {
+    try 
+    {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap != null) {
-            console.log("Opened");
+            console.log("*Opened the stream :",streamingUrl);
 
             let raw = vCap.read();
             var rawImgName = "./" + camId + ".jpg";
+            //write image to local FS
             cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+            //convert to base64
             var base64Raw = base64_encode(rawImgName);
-            //console.log("BASE 64::\n");
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
             //Sync          
@@ -199,7 +202,6 @@ var getRawImage = function (message) {
                 imgBase64: base64Raw
             };
             //MQTT APPROACH
-            //console.log("SIZE :: ", jsonSize(rawJsonBody));
             var rawJsonBodyString = JSON.stringify(rawJsonBody);
             client.publish('rawMQTT', rawJsonBodyString);
             //HTTP
@@ -227,12 +229,18 @@ var getRawImage = function (message) {
         }
     }
     catch (err) {
-        console.log("    Streaming Error in GetRawImage !!");
+        console.log("Streaming Error in GetRawImage!\n\nURL ::",streamingUrl);
     }
 }
 
+/**
+ * to test if camera devices are online(able to stream) or not
+ * @param {*[string]} rtspArray 
+ * @param {*function} callback 
+ */
 var cameraUrls = function (rtspArray, callback) {
-    //console.log("RTSP ARRAY ", rtspArray);
+    console.log("CALL -cameraUrls");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     rtspArray.forEach(device => {
         try {
             const vCap = new cv.VideoCapture(device.streamingUrl);
@@ -241,32 +249,40 @@ var cameraUrls = function (rtspArray, callback) {
             }
         }
         catch (err) {
-            console.log("Not online !");
+            console.log("Camera Device ::Not online ");
         }
     });
-    console.log("RESULT ARRAY::", rtspArray);
+    //console.log("RESULT ARRAY::", rtspArray);
     callback(rtspArray);
 }
 
+/**
+ * to start stream and send images to backend and respective compute engine
+ * @param {*string} camId 
+ * @param {*string} detectionType 
+ * @param {*string} streamingUrl 
+ * @param {*[string]} bboxes 
+ * @param {*string} cameraFolder local folderpath to stream
+ */
 var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
-    console.log("STREAMING URL ::: "+streamingUrl);
-    const vCap = new cv.VideoCapture(streamingUrl); //'rtsp://komal:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=14&subtype=0'  
-    var frameRate = vCap.get(1);
-    var fps = vCap.get(5);
+    console.log("CALL -startLiveStreaming");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
+    const vCap = new cv.VideoCapture(streamingUrl);  
+    //fps:frames per second, interval: call to function in interval
+    var fps = vCap.get(5); 
     var interval = fps;
+    //if Compute Engine=cloudComputeEngine
     if(detectionType === "faceDetection"){
         fps = fps*3;
     }
-    // fps = fps/3;
-    console.log("FPS : "+fps);
+    //filepath to stream images
     var filePath = cameraFolder + "/";
-    console.log("FILEPATH ::",filePath);
     if (vCap != null) {
         console.log("Stream Opened Successfully");
     }
 
     /** Rsync init */
-// var getLiveCameras =
     var rsync = new Rsync()
     .shell('ssh')
     .flags('avz')
@@ -296,14 +312,6 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             console.log("BASE 64::\n");
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
-            /**
-             * TODO : Plug to add multipl
-// var getLiveCameras =e Detection api
-             */
-            // rsync.execute(function(error, code, cmd) {
-            //     console.log("RSync Done");
-            //     fs.unlinkSync(imageFullPath);
-            // });
             console.log("Detection type : ",detectionType);
             switch(detectionType) {
                 case 'humanDetection':
@@ -312,7 +320,6 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                      */
                     rsync.execute(function(error, code, cmd) {
                         console.log("RSynnc");
-                        // var getLiveCameras =c Done");
                         fs.unlinkSync(imageFullPath);
                     });
                     break;

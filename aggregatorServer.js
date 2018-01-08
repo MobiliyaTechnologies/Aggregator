@@ -282,7 +282,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
         console.log("Stream Opened Successfully");
     }
 
-    /** Rsync init */
+    /** Rsync init :source(filePath):local folderpath ,destination: compute engine's folder path*/
     var rsync = new Rsync()
     .shell('ssh')
     .flags('avz')
@@ -298,21 +298,20 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
 
         if (vCap.get(1) % parseInt(fps) == 0) {
 
-            console.log("WRITTEN IMAGE at time :: ", new Date());
+            //console.log("WRITTEN IMAGE at time :: ", new Date());
             var timestamp  =  new Date().getTime();
             var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
             var imageFullPath = filePath + imageName;
 
-            /**to write captured image of cam into local fs */
+            /**to write captured image of camera into local fs */
             cv.imwrite(imageFullPath, frame,[parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             /**
              * Base 64 encoding
              */
             var base64Raw = base64_encode(imageFullPath);
-            console.log("BASE 64::\n");
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
-            console.log("Detection type : ",detectionType);
+            console.log("*Detection type : ",detectionType);
             switch(detectionType) {
                 case 'humanDetection':
                     /**

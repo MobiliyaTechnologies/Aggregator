@@ -14,9 +14,15 @@ const cv = require('opencv4nodejs');
 var jsonSize = require('json-size');
 var Rsync = require('rsync');
 
+//_________________SERVER CONFIGURATION_________________
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
+
+var port = config.port;
+app.listen(port, function () {
+    console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
+});
 
 var liveCamIntervalArray = [];
 
@@ -41,8 +47,10 @@ client.on('reconnect', function () {
 });
 
 client.on('close', function () { console.log("\n**BROKER STATUS :: \n     CLOSED connection with MQTT broker!\n-----------------------------------\n"); });
+//_________________SERVER CONFIGURATION  DONE_________________
 
-//Handling Messages
+//_________________Handling Messages_________________
+
 client.on('message', function (topic, message) {
     // message is Buffer
     console.log("DATA RECEIVED ON TOPIC :: ", topic);
@@ -89,7 +97,7 @@ client.on('message', function (topic, message) {
                     startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
                 });
 
-                console.log("MQTT==================startStream Done!!\n-----------------------------------\n");
+                console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                 break;
             }
 
@@ -99,7 +107,7 @@ client.on('message', function (topic, message) {
                 console.log("\n*Stop these cameras ::",JSON.stringify(camIds));
                 stopCamera(camIds, function (error) {
                     if (!error) {
-                        console.log("MQTT==================Stopped the camera\n-----------------------------------\n");
+                        console.log("MQTT==================Stopped the cameras\n-----------------------------------\n");
                     }
                 });
                 break;
@@ -113,9 +121,8 @@ client.on('message', function (topic, message) {
 });
 
 /**
- * 
+ * creating Base directory for images
  */
-//creating basedirectory 
 if (!fs.existsSync(config.camFolder)) {
     mkdirp(config.camFolder, function (err) {
         if (err) {
@@ -124,7 +131,6 @@ if (!fs.existsSync(config.camFolder)) {
             console.log("Base directory created :",config.camFolder);
     });
 }
-
 
 //________________________Functions________________________
 /**
@@ -288,7 +294,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     .flags('avz')
     .source(filePath)
     .destination(config.jetsonFolderPath + camId);
-   
+    console.log("*Sending frames now!!\n``````````````````````````````````\n");
+
     /**
      * To stream continuous frames with interval
      */
@@ -311,23 +318,26 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             var base64Raw = base64_encode(imageFullPath);
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
-            console.log("*Detection type : ",detectionType);
-            switch(detectionType) {
+            //Sending images to respective compute engine
+            switch(detectionType) 
+            {
                 case 'humanDetection':
                     /**
-                     * to sync newly added file with jetson fs
+                     * to sync newly added file with compute engine's FS
                      */
                     rsync.execute(function(error, code, cmd) {
-                        console.log("RSynnc");
                         fs.unlinkSync(imageFullPath);
                     });
                     break;
+
                 case 'faceDetection':
+                    /**
+                     * to send images to cloud compute engine
+                     */
                     var requestObj = request.post(config.cloudServiceUrl , function optionalCallback(err, httpResponse, body) {
                         if (err) {
                             return console.error('Failed to connect to compute engine:', err);
                         }
-
                         console.log('Upload successful!  Compute engine respond : ', body);
                     });
                     var form = requestObj.form();
@@ -336,7 +346,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                     form.append('timestamp',timestamp);
                     form.append('file',
                         fs.createReadStream(imageFullPath).on('end', function () {
-                            console.log("--Image sent----");
+                            console.log("***File sent to compute engine***");
                         })
                     );
                     break;
@@ -347,37 +357,39 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             /**
              * send newly added image to web backend
              */
-            var rawJsonBody = {
+            var imgJsonBody = {
                 imgName: imageName,
                 imgBase64: base64Raw
             };
-            var rawJsonBodyString = JSON.stringify(rawJsonBody);
             var options = {
                 url: config.sendLiveStreamUploadURL,
                 method: 'POST',
-                json: rawJsonBody,
-                // headers: {
-                //     'Content-Type': 'text/plain'
-                // }
+                json: imgJsonBody
             }
             request(options,function(error, body, response){
                 if(error){
                     console.log("ERROR in posting image::" + error);
                 }else
                     console.log("Response from image post  :: " +JSON.stringify(body));
-            })
-            
+            })   
         }
     }, 1000 / interval);
 
-    /**To maintain live cam array */
+    /**To maintain live camera array */
     liveCamIntervalArray.push({
         camId: camId,
         intervalObj: camInterval
     });
 }
 
+/**
+ * to receive bboxes and call startstreaming
+ * @param {*string} message 
+ * @param {*function} callback 
+ */
 var boundingBox = function (message, callback) {
+    console.log("CALL -boundingBox");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
@@ -385,13 +397,13 @@ var boundingBox = function (message, callback) {
     var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
     
-    console.log("Creating camID folder");
+    //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
             if (err) {
                 console.log('Error in creating folder');
             } else {
-                console.log("Directory created successfully!");
+                console.log("cameraId directory created successfully!");
                 callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
             }
         });
@@ -399,28 +411,32 @@ var boundingBox = function (message, callback) {
         callback(camId, detectionType, streamingUrl, parsedJson.Coords , cameraFolder);
 };
 
+/**
+ * to stop cameras specified
+ * @param {*string} message 
+ * @param {*function} callback 
+ */
 var stopCamera = function (message, callback) {
+    console.log("CALL -stopCamera");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
     var camIds = parseJson(message);
     let tempArr = liveCamIntervalArray.slice();
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             clearInterval(cam.intervalObj);
-            //to remove stopped live cam 
+            //to remove stopped live camera 
             liveCamIntervalArray.splice(i, i + 1);
         }
     });
     callback(null);
 };
- 
+
+//updation needed
 app.get('/cameras/live',function (req,res) {
     var result = [];
     liveCamIntervalArray.forEach(function (cam) {
         result.push(cam.camId);
     });
     res.send(result);
-});
-
-var port = config.port;
-app.listen(3003, function () {
-    console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });

@@ -16,6 +16,7 @@
     "body-parser": "^1.18.2",
     "cors": "^2.8.4",
     "express": "^4.16.2",
+    "json-size": "^1.0.0",
     "mkdirp": "^0.5.1",
     "mqtt": "^2.14.0",
     "opencv4nodejs": "^2.26.1",

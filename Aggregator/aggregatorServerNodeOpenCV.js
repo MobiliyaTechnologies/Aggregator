@@ -23,7 +23,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 //Connect MQTT Broker
-var client = mqtt.connect(mqttBroker);
+var client = mqtt.connect(MQTTBroker);
 
 //Subscriptions
 client.on('connect', function () {
@@ -91,8 +91,8 @@ client.on('message', function (topic, message) {
                 var parsedJson = parseJson(sendData);
 
                 //STOP camera call
-                boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes) {
-                    startLiveStreaming(camId, detectionType, streamingUrl, bboxes)
+                boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
+                    startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
                 });
 
                 console.log("MQTT==================startStream Done!!\n-----------------------------------\n");
@@ -154,7 +154,7 @@ var getRawImage = function (message) {
     parsedJson = parseJson(message);
 
     var feature = parsedJson.feature;
-    var camId = parsedJson.camId;
+    var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
   
     if (!fs.existsSync(config.camFolder)) {
@@ -242,11 +242,12 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     var fps = vCap.get(5);
     var interval = fps;
     if(detectionType === "faceDetection"){
-        fps = fps;
+        fps = fps*3;
     }
     // fps = fps/3;
     console.log("FPS : "+fps);
     var filePath = cameraFolder + "/";
+    console.log("FILEPATH ::",filePath);
     if (vCap != null) {
         console.log("Stream Opened Successfully");
     }
@@ -274,7 +275,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             var imageFullPath = filePath + imageName;
 
             /**to write captured image of cam into local fs */
-            cv.imwrite(imageFullPath, frame);
+            cv.imwrite(imageFullPath, frame,[parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             /**
              * Base 64 encoding
              */
@@ -344,7 +345,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                 if(error){
                     console.log("ERROR in posting image::" + error);
                 }else
-                    console.log("Response from image post  :: " + response);
+                    console.log("Response from image post  :: " +JSON.stringify(body));
             })
             
         }

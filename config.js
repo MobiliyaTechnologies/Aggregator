@@ -1,29 +1,34 @@
+/**
+ * For Aggregator Code
+ */
 var config = {};
 
 config.port = 3001;
-config.host = "http://52.177.169.81:5005";
-config.mqttBroker = "mqtt://52.177.169.81:1885";
-config.stopCameraURL = config.host + "/api/resetCameraStatus"
-config.stopAllCameraURL = config.host + "/api/resetAllCameraStatus"
-config.camFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/";
-config.stopLiveFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessing";
-config.stopDetectnetFile = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessingDetectnet";
-config.uploadImageWatcher = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/json_watcher.py";
-config.bboxFile = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/bbox";
-config.cameraConfigFile = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/config";
-config.getJetsonStatusURL = 'http://52.177.169.81:5005/api/getJetson';
-config.bboxData = "./bboxdata"
-config.stopProcessing = "./stopProcessing"
-config.livestreamingCamFolder = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-config.livestreamingDeviceInfo = "/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/Device_Information";
-config.livestreamingErrorURL = config.host + "/api/errorHandling"
 
-config.testDevive_DeviceInfo ="/home/ubuntu/jetson-device-client/NodeRest/Device_Information_temp";
+/**
+ * BROKERS address
+ * mqttBroker : Aggregator and WebApp communication
+ */
+config.mqttBroker = "mqtt://52.177.169.81:1887";
 
-config.getRawImageUploadURL = config.host + "/api/Upload";
-    // config.folderToWatch = "/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64";
-    // config.cameraWatcherFolder = folderToWatch + "/Cameras/Cam";
-    // config.sendResultURL = "http://52.177.169.81:5005/api/getResult"
+config.host = "http://52.177.169.81:5008";
 
+config.cloudComputeEngine = "http://52.177.169.81:5003";
+
+/**
+ * Target jetson path
+ */
+config.jetsonFolderPath = "ubuntu@10.9.44.132:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
+/**
+ * URL of VM to send images
+ */
+config.sendLiveStreamUploadURL = config.host + "/api/getImage";
+
+config.camFolder = "./Cameras";
+config.livestreamingCamFolder = "./Cameras/Cam";
+
+config.cloudServiceUrl = config.cloudComputeEngine + "/faces";
+config.cloudServiceTargetUrl = config.host+"/api/getResult";
 
 module.exports = config;
+

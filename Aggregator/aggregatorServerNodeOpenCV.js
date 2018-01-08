@@ -14,14 +14,13 @@ const cv = require('opencv4nodejs');
 var jsonSize = require('json-size');
 var Rsync = require('rsync');
 
-var MQTTBroker = config.mqttBroker;
-
-var liveCamIntervalArray = [];
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
+var liveCamIntervalArray = [];
+
+var MQTTBroker = config.mqttBroker;
 //Connect MQTT Broker
 var client = mqtt.connect(MQTTBroker);
 
@@ -36,9 +35,6 @@ client.on('connect', function () {
     client.subscribe('stopCamera');
     client.subscribe('boundingBox');
     client.subscribe('stopAllCamera');
-
-    //stop any old process
-    //stopAllCamera();
 });
 
 client.on('reconnect', function () {
@@ -83,7 +79,7 @@ client.on('message', function (topic, message) {
                 });
                 break;
             }
-        //_____________JETSON COMMUNICATION_____________
+
         case 'boundingBox':
             {
                 //console.log(message.toString());
@@ -107,7 +103,6 @@ client.on('message', function (topic, message) {
                 stopCamera(camIds, function (error) {
                     if (!error) {
                         console.log("MQTT==================Stopped the camera\n-----------------------------------\n");
-                        // var getLiveCameras =op Camera Done!!\n-----------------------------------\n");
                     }
                 });
                 break;
@@ -121,8 +116,9 @@ client.on('message', function (topic, message) {
 });
 
 //Functions
+
 var addCamera = function (message) {
-    console.log("CALL -addCamera", message);
+    console.log("CALL -addCamera");
     var parsedJson = parseJson(message);
     //console.log("DEVICE ::", parsedJson);
     var streamingUrl = parsedJson.streamingUrl;
@@ -139,7 +135,7 @@ var addCamera = function (message) {
         var deviceResult = { "camdetails": parsedJson, "flag": "0" };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
-    console.log("Result::", strdeviceResult);
+    //console.log("Result::", strdeviceResult);
     client.publish('addCameraResponse', strdeviceResult);
 }
 
@@ -151,6 +147,7 @@ var base64_encode = function (file) {
 }
 
 var getRawImage = function (message) {
+    console.log("CALL -getRawImage");
     parsedJson = parseJson(message);
 
     var feature = parsedJson.feature;
@@ -175,7 +172,7 @@ var getRawImage = function (message) {
             cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             var base64Raw = base64_encode(rawImgName);
             //console.log("BASE 64::\n");
-            base64Raw = "data:image/jpg;base64, " + base64Raw; //to remove and to implement on web side
+            base64Raw = "data:image/jpg;base64, " + base64Raw;
 
             //Sync          
             var rawJsonBody = {
@@ -183,13 +180,11 @@ var getRawImage = function (message) {
                 imgBase64: base64Raw
             };
             //MQTT APPROACH
-            console.log("SIZE :: ", jsonSize(rawJsonBody));
+            //console.log("SIZE :: ", jsonSize(rawJsonBody));
             var rawJsonBodyString = JSON.stringify(rawJsonBody);
             client.publish('rawMQTT', rawJsonBodyString);
             //HTTP
             /*
-            console.log("BASE 64 Json");
-// var getLiveCameras =
             var options = {
                 url: config.getRawImageUploadURL,
                 method: 'POST',
@@ -205,7 +200,6 @@ var getRawImage = function (message) {
                 console.log(result);
             })
             .catch(
-// var getLiveCameras =
                 function(err){
                 console.log(err);
                 }
@@ -219,7 +213,7 @@ var getRawImage = function (message) {
 }
 
 var cameraUrls = function (rtspArray, callback) {
-    console.log("RTSP ARRAY ", rtspArray);
+    //console.log("RTSP ARRAY ", rtspArray);
     rtspArray.forEach(device => {
         try {
             const vCap = new cv.VideoCapture(device.streamingUrl);

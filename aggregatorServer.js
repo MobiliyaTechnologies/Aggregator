@@ -55,6 +55,7 @@ client.on('message', function (topic, message) {
             }
         case 'addCamera':
             {
+                //
                 var newDevice = message.toString();
                 addCamera(newDevice);
                 console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
@@ -97,9 +98,9 @@ client.on('message', function (topic, message) {
 
         case 'stopCamera':
             {
-                console.log("Payload for Stop camera :"+message.toString());
+                //console.log("Payload for Stop camera :"+message.toString());
                 var camIds = message.toString();
-                // console.log(parsedJson);
+                console.log("\n*Stop cameras ::",camIds);
                 stopCamera(camIds, function (error) {
                     if (!error) {
                         console.log("MQTT==================Stopped the camera\n-----------------------------------\n");
@@ -110,7 +111,7 @@ client.on('message', function (topic, message) {
        
         default:
             {
-                console.log("\n DEfault ::  Topic:: " + topic + " not handled!!");
+                console.log("\n Default ::  Topic:: " + topic + " not handled!!");
             }
     }
 });
@@ -119,13 +120,17 @@ client.on('message', function (topic, message) {
 
 var addCamera = function (message) {
     console.log("CALL -addCamera");
+
     var parsedJson = parseJson(message);
-    //console.log("DEVICE ::", parsedJson);
     var streamingUrl = parsedJson.streamingUrl;
-    try {
+    console.log("DEVICE URL to test::", streamingUrl);
+
+    try 
+    {
         const vCap = new cv.VideoCapture(streamingUrl);
-        if (vCap !== null) {
-            console.log("Camera can stream!");
+        if (vCap !== null) 
+        {
+            console.log("Camera device can stream!");
             var deviceResult = { "camdetails": parsedJson, "flag": "1" };
         }
     }

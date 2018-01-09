@@ -1,24 +1,36 @@
+/**
+ * For Aggregator Code
+ */
 var config = {
+    
     AzureServerUrl:"",
     Version:"1.01",
-    mqttBroker:"mqtt://52.177.169.81:1885",
-    host:"http://52.177.169.81:5005",
-    port:3001,
-    stopCameraURL:"/api/resetCameraStatus",
-    stopAllCameraURL:"/api/resetAllCameraStatus",
-    camFolder:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/",
-    stopLiveFile:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessing",
-    stopDetectnetFile:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/stopProcessingDetectnet",
-    uploadImageWatcher:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/json_watcher.py",
-    bboxFile:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/bbox",
-    cameraConfigFile:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/config",
-    getJetsonStatusURL:'http://52.177.169.81:5005/api/getJetson',
-    bboxData:"./bboxdata",
-    stopProcessing:"./stopProcessing",
-    livestreamingCamFolder:"/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam",
-    livestreamingDeviceInfo:"/home/ubuntu/surveillance/jetson-dl/jetson-device-client/NodeRest/AggregatorCode/Device_Information",
-    livestreamingErrorURL:"/api/errorHandling",
-    testDevive_DeviceInfo:"/home/ubuntu/jetson-device-client/NodeRest/Device_Information_temp",
-    getRawImageUploadURL:"/api/Upload",
-};
+    port = 3001,
+
+    /**
+     * BROKERS address
+     * mqttBroker : Aggregator and WebApp communication
+     */
+    mqttBroker = "mqtt://52.177.169.81:1887",
+
+    host = "http://52.177.169.81:5008",
+
+    cloudComputeEngine = "http://52.177.169.81:5003",
+
+    /**
+     * Target jetson path
+     */
+    jetsonFolderPath = "ubuntu@10.9.44.132:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam",
+    /**
+     * URL of VM to send images
+     */
+    sendLiveStreamUploadURL = config.host + "/images",
+    //base directory
+    camFolder = "./Cameras",
+    livestreamingCamFolder = "./Cameras/Cam",
+
+    cloudServiceUrl = config.cloudComputeEngine + "/faces",
+    cloudServiceTargetUrl = config.host + "/results",
+}
 module.exports = config;
+

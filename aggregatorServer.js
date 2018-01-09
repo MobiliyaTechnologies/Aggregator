@@ -62,8 +62,9 @@ client.on('message', function (topic, message) {
         case 'addCamera':
             {
                 var newDevice = message.toString();
-                addCamera(newDevice);
-                console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
+                addCamera(newDevice, function (error) {
+                    console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
+                });
                 break;
             }
         case 'getRawImage':
@@ -71,13 +72,15 @@ client.on('message', function (topic, message) {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
                 var camId = parsedJson.camId;
-                getRawImage(message,function(error){
-                if(!error){
-                       console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
+                getRawImage(message, function (error) {
+                    if (!error) {
+                        console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
                     }
+                    else
+                        console.log("**Error in GetRawImage :", error);
                 });
 
-                
+
                 break;
             }
         case 'cameraUrls':
@@ -124,8 +127,8 @@ client.on('message', function (topic, message) {
 });
 
 /**
- * creating Base directory for images
- */
+* creating Base directory for images
+*/
 if (!fs.existsSync(config.camFolder)) {
     mkdirp(config.camFolder, function (err) {
         if (err) {
@@ -137,10 +140,10 @@ if (!fs.existsSync(config.camFolder)) {
 
 //________________________Functions________________________
 /**
- * to test device if it can stream 
- * @param {*string} message 
- */
-var addCamera = function (message) {
+* to test device if it can stream 
+* @param {*string} message 
+*/
+var addCamera = function (message, callback) {
     console.log("CALL -addCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
@@ -163,12 +166,13 @@ var addCamera = function (message) {
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
     client.publish('addCameraResponse', strdeviceResult);
+    callback(null);
 }
 
 /**
- * to convert image to base64 format
- * @param {*string} file image filepath to be converted to base64  
- */
+* to convert image to base64 format
+* @param {*string} file image filepath to be converted to base64  
+*/
 var base64_encode = function (file) {
     // read binary data
     var bitmap = fs.readFileSync(file);
@@ -177,10 +181,10 @@ var base64_encode = function (file) {
 }
 
 /**
- * to get raw image of camera device
- * @param {*string} message camera device data to get raw image 
- */
-var getRawImage = function (message) {
+* to get raw image of camera device
+* @param {*string} message camera device data to get raw image 
+*/
+var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     parsedJson = parseJson(message);
@@ -211,40 +215,42 @@ var getRawImage = function (message) {
             //MQTT APPROACH
             var rawJsonBodyString = JSON.stringify(rawJsonBody);
             client.publish('rawMQTT', rawJsonBodyString);
+            callback(null);
             //HTTP
             /*
             var options = {
-                url: config.getRawImageUploadURL,
-                method: 'POST',
-                json: rawJsonBody
+            url: config.getRawImageUploadURL,
+            method: 'POST',
+            json: rawJsonBody
             }
-
+        
             request(options,function(error, body, response){
-                console.log("ERROR ::" + error);
-                console.log("RESPONSE  :: " + response);
+            console.log("ERROR ::" + error);
+            console.log("RESPONSE  :: " + response);
             })
-           
+        
             .then(function(result){
-                console.log(result);
+            console.log(result);
             })
             .catch(
-                function(err){
-                console.log(err);
-                }
+            function(err){
+            console.log(err);
+            }
             )
             */
         }
     }
     catch (err) {
         console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
+        callback(err);
     }
 }
 
 /**
- * to test if camera devices are online(able to stream) or not
- * @param {*[string]} rtspArray 
- * @param {*function} callback 
- */
+* to test if camera devices are online(able to stream) or not
+* @param {*[string]} rtspArray 
+* @param {*function} callback 
+*/
 var cameraUrls = function (rtspArray, callback) {
     console.log("CALL -cameraUrls");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -264,13 +270,13 @@ var cameraUrls = function (rtspArray, callback) {
 }
 
 /**
- * to start stream and send images to backend and respective compute engine
- * @param {*string} camId 
- * @param {*string} detectionType 
- * @param {*string} streamingUrl 
- * @param {*[string]} bboxes 
- * @param {*string} cameraFolder local folderpath to stream
- */
+* to start stream and send images to backend and respective compute engine
+* @param {*string} camId 
+* @param {*string} detectionType 
+* @param {*string} streamingUrl 
+* @param {*[string]} bboxes 
+* @param {*string} cameraFolder local folderpath to stream
+*/
 var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -299,8 +305,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     console.log("*Sending frames now!!\n``````````````````````````````````\n");
 
     /**
-     * To stream continuous frames with interval
-     */
+    * To stream continuous frames with interval
+    */
     var camInterval = setInterval(function () {
         /**reading next frame */
         let frame = vCap.read();
@@ -316,8 +322,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             /**to write captured image of camera into local fs */
             cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             /**
-             * Base 64 encoding
-             */
+            * Base 64 encoding
+            */
             var base64Raw = base64_encode(imageFullPath);
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
@@ -325,8 +331,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             switch (detectionType) {
                 case 'humanDetection':
                     /**
-                     * to sync newly added file with compute engine's FS
-                     */
+                    * to sync newly added file with compute engine's FS
+                    */
                     rsync.execute(function (error, code, cmd) {
                         if (error) {
                             console.log("Error in rsync ::", error);
@@ -341,8 +347,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
 
                 case 'faceDetection':
                     /**
-                     * to send images to cloud compute engine
-                     */
+                    * to send images to cloud compute engine
+                    */
                     var requestObj = request.post(config.cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
                         if (err) {
                             return console.error('Failed to connect to compute engine:', err);
@@ -364,8 +370,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
             }
 
             /**
-             * send newly added image to web backend
-             */
+            * send newly added image to web backend
+            */
             var imgJsonBody = {
                 imgName: imageName,
                 imgBase64: base64Raw
@@ -393,10 +399,10 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
 }
 
 /**
- * to receive bboxes and call startstreaming
- * @param {*string} message 
- * @param {*function} callback 
- */
+* to receive bboxes and call startstreaming
+* @param {*string} message 
+* @param {*function} callback 
+*/
 var boundingBox = function (message, callback) {
     console.log("CALL -boundingBox");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -422,10 +428,10 @@ var boundingBox = function (message, callback) {
 };
 
 /**
- * to stop cameras specified
- * @param {*string} message 
- * @param {*function} callback 
- */
+* to stop cameras specified
+* @param {*string} message 
+* @param {*function} callback 
+*/
 var stopCamera = function (message, callback) {
     console.log("CALL -stopCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");

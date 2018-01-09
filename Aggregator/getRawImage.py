@@ -20,7 +20,7 @@ def main():
 	detection_id = str(argument_list[0])
 	camera_id = str(argument_list[1])
 	cam_url=str(argument_list[2])
-	
+	print (cam_url)
 	cam =cv2.VideoCapture(cam_url)
 	if cam.isOpened():
 		ret,img = cam.read()
@@ -31,18 +31,18 @@ def main():
 
 		#server url
 		try:
-		    	url = argument_list[3]
-			files = {'file': open(filename, 'rb')}
-			requests.post(url, files=files)
-			cv2.waitKey(100)
+				url = argument_list[3]
+				files = {'file': open(filename, 'rb')}
+				requests.post(url, files=files)
+				cv2.waitKey(100)
 		except requests.exceptions.Timeout:
-	    		print "**SERVER ERROR:: Timeout in sending Raw Image"
+	    		print ("**SERVER ERROR:: Timeout in sending Raw Image")
 		except requests.exceptions.TooManyRedirects:
-	    		print "**SERVER ERROR:: Too many Redirects..!!"
+	    		print ("**SERVER ERROR:: Too many Redirects..!!")
 		except requests.exceptions.RequestException as e:
-	    		print e
+	    		print (e)
 	else:
-		print "		***DVR ERROR!!! "
+		print ("		***DVR ERROR!!! ")
 
 # Start process
 if __name__ == '__main__':

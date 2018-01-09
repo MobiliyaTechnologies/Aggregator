@@ -22,13 +22,13 @@ config.jetsonFolderPath = "ubuntu@10.9.44.132:/home/ubuntu/surveillance/jetson-d
 /**
  * URL of VM to send images
  */
-config.sendLiveStreamUploadURL = config.host + "/images";
-//base directory
+config.sendLiveStreamUploadURL = config.host + "/api/getImage";
+
 config.camFolder = "./Cameras";
 config.livestreamingCamFolder = "./Cameras/Cam";
 
 config.cloudServiceUrl = config.cloudComputeEngine + "/faces";
-config.cloudServiceTargetUrl = config.host + "/results";
+config.cloudServiceTargetUrl = config.host+"/api/getResult";
 
 module.exports = config;
 

@@ -26,7 +26,7 @@ def main():
 		
 		argument_list.append(item)
 	
-	print json.dumps(argument_list)
+	print (json.dumps(argument_list))
 
 if __name__ == '__main__':
 	main()

@@ -24,7 +24,7 @@ def main():
 	detection_id = str(argument_list[0])
 	camera_id = str(argument_list[1])
 	cam_url=str(argument_list[2])
-	print (argument_list[3])
+	#print (argument_list[3])
 	print(detection_id,camera_id)
 
 	pid=str(os.getpid())
@@ -37,12 +37,15 @@ def main():
 	elif detection_id=="1":
 		detection_type="vehicleDetection"
 	print ("Detection Type_______________________________________________________________________________________",detection_type)
-	
+	jetsonFolderPath = argument_list[5]+ str(camera_id)
+	#print jetsonFolderPath
 	print "URL to stream::",cam_url
-	cam=cv2.VideoCapture(cam_url)
-	frame_count =1
+	count_frames = 1
 	try:
 		cam=cv2.VideoCapture(cam_url)
+		fps=int(cam.get(cv2.CAP_PROP_FPS))
+		print "FPS :: ",fps
+		#print "FPS :: "+type(fps)
 		#cam.set(cv2.cv.CV_CAP_PROP_FPS, 5)
 		while(True):
 			#cam=cv2.VideoCapture(cam_url)
@@ -55,31 +58,46 @@ def main():
 
 				filename = str(camera_id)+"_"+detection_type+"_"+str(timestamp)+".jpg"
 
-				file_path = argument_list[4]+str(camera_id)
-				#print "FILEPATH:::",file_path
+				filePathLocal = argument_list[4]+str(camera_id)
+				filePathJoin = os.path.join(filePathLocal ,filename)
+				file_path =  os.getcwd()+ filePathJoin
+				imgname = file_path
+				ryncPath = os.getcwd()+filePathLocal 
+
 				if imgtemp is not None:
-					if ((frame_count%12)==0)
-						cv2.imwrite(os.path.join(file_path ,filename), imgtemp,[int(cv2.IMWRITE_JPEG_QUALITY), 50])
+					if(count_frames%30==0):
+						#print "FILEPATH:::",file_path
+						cv2.imwrite(file_path, imgtemp)
 						#print "*****************IMWRITE FILENAME:::**************",filename
-						imgname=os.path.join(file_path ,filename)
+						rsyncCommand="rsync -avz -e ssh "+ryncPath+"/ "+jetsonFolderPath
+						#print rsyncCommand
+						
+						os.system(rsyncCommand)
+						#imgname=str(os.getcwd()+file_path+"/"+filename)
+						#os.path.join(file_path ,filename)
 						#print imgname
 						#time.sleep(0.2)
+						#print argument_list[6]
+						
 						try:
-							url = "http://52.177.169.81:5005/api/getImage"
-							#print "IMAGE LOCATION:"
+							url = argument_list[6]
+							print "IMAGE LOCATION:",imgname
 							files = {'file': open(imgname, 'rb')}
+							#print files
 							requests.post(url, files=files)
+							os.remove(str(imgname))
+							#time.sleep(1)
 							#cv2.waitKey(100)
 						except requests.exceptions.Timeout:
-									print "**SERVER ERROR:: Timeout in sending Image"
+						    		print "**SERVER ERROR:: Timeout in sending Image"
 						except requests.exceptions.TooManyRedirects:
-									print "**SERVER ERROR:: Too many Redirects..!!"
+						    		print "**SERVER ERROR:: Too many Redirects..!!"
 						except requests.exceptions.RequestException as e:
-									print e
-						#time.sleep(0.6)
-					frame_count = frame_count +1
+						    		print e
+					#time.sleep(0.6)
+					count_frames=count_frames+1
 			else :
-				print "IN Livestream :: ERROR"
+				print "IN Livestream :: ERROR Opening stream !!"
 				
 	except KeyboardInterrupt:
 		os.system("ps -ef |grep livestreaming.py | awk '{print $2}'| xargs kill -9")

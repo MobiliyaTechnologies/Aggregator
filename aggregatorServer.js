@@ -30,7 +30,7 @@ var liveCamIntervalArray = [];
 var MQTTBroker = config.mqttBroker;
 var client = mqtt.connect(MQTTBroker);
 
-//Subscriptions
+//Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**CLOUD BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
@@ -39,7 +39,6 @@ client.on('connect', function () {
     client.subscribe('cameraUrls');
     client.subscribe('stopCamera');
     client.subscribe('boundingBox');
-    client.subscribe('stopAllCamera');
 });
 
 client.on('reconnect', function () {
@@ -72,9 +71,13 @@ client.on('message', function (topic, message) {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
                 var camId = parsedJson.camId;
-                getRawImage(message);
+                getRawImage(message,function(error){
+                if(!error){
+                       console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
+                    }
+                });
 
-                console.log("MQTT==================getRawImage Done!!\n-----------------------------------\n");
+                
                 break;
             }
         case 'cameraUrls':
@@ -82,8 +85,8 @@ client.on('message', function (topic, message) {
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
                     //console.log("Publishing Online Devices....",resultArray)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
+                    console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
                 });
-                console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
                 break;
             }
 
@@ -95,9 +98,9 @@ client.on('message', function (topic, message) {
                 //STOP camera call
                 boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
                     startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
+                    console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                 });
 
-                console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                 break;
             }
 
@@ -149,13 +152,13 @@ var addCamera = function (message) {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap !== null) {
             console.log("Camera device can stream!");
-            var deviceResult = { "camdetails": parsedJson, "flag": "1" };
+            var deviceResult = { "camdetails": parsedJson, "flag": 1 };
         }
     }
     //console.log("  Device Test Results::", message);
     catch (err) {
         console.log(err);
-        var deviceResult = { "camdetails": parsedJson, "flag": "0" };
+        var deviceResult = { "camdetails": parsedJson, "flag": 0 };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
@@ -187,6 +190,7 @@ var getRawImage = function (message) {
     var streamingUrl = parsedJson.streamingUrl;
 
     try {
+        //open the stream
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap != null) {
             console.log("*Opened the stream :", streamingUrl);
@@ -271,9 +275,10 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
+    //open the stream
     const vCap = new cv.VideoCapture(streamingUrl);
     //fps:frames per second, interval: call to function in interval
-    var fps = vCap.get(5);
+    var fps = vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
     var interval = fps;
     //if Compute Engine=cloudComputeEngine
     if (detectionType === "faceDetection") {
@@ -304,6 +309,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
 
             //console.log("WRITTEN IMAGE at time :: ", new Date());
             var timestamp = new Date().getTime();
+            //composing imagename
             var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
             var imageFullPath = filePath + imageName;
 
@@ -328,6 +334,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                         else {
                             console.log("Rsync done !");
                         }
+                        //deleting the sent file 
                         fs.unlinkSync(imageFullPath);
                     });
                     break;

@@ -13,6 +13,8 @@ var request = require('request');
 const cv = require('opencv4nodejs');
 var jsonSize = require('json-size');
 var Rsync = require('rsync');
+var serialNumber = require('serial-number');
+var ip = require("ip");
 
 //_________________SERVER CONFIGURATION_________________
 app.use(bodyParser.json());
@@ -24,6 +26,33 @@ app.listen(port, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
 
+//ping mechanism
+serialNumber(function (err, value) {
+    //Aggregator information 
+    var aggregatorData = { "aggregatorName" : "Aggregator01", 
+                            "url": "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0", 
+                            "macId" : value, "ipAddress": ip.address(),
+                            "availability": "yes", 
+                            "location" : "4rth Floor Amar Apex",
+                            "channelId" : "32"
+                        };
+    var options = {
+        url: config.registerAggregator,
+        method: 'POST',
+        json: aggregatorData
+    };
+    request(options, function (error, response, body) {
+        if (error) {
+            console.log("Error Registering the Aggregator");
+        } else {
+            //console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.aggregatorId); 
+            //var aggregatorId = response.body.aggregatorId;
+            console.log("Success in Registering Aggregator !");
+        }
+    });
+});
+
+//to keep track of live cameras
 var liveCamIntervalArray = [];
 
 //Connect MQTT Broker
@@ -97,7 +126,7 @@ client.on('message', function (topic, message) {
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
-
+                console.log("BBOX ::", parsedJson);
                 //STOP camera call
                 boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
                     startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
@@ -293,7 +322,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     //filepath to stream images
     var filePath = cameraFolder + "/";
     if (vCap != null) {
-        console.log("Stream Opened Successfully");
+        console.log("Stream Opened Successfully with fps ::", fps);
     }
 
     /** Rsync init :source(filePath):local folderpath ,destination: compute engine's folder path*/

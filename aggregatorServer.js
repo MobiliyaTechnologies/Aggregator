@@ -63,11 +63,11 @@ var client = mqtt.connect(MQTTBroker);
 client.on('connect', function () {
     console.log("**CLOUD BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    client.subscribe('addCamera');
+    client.subscribe('checkCamera');
     client.subscribe('getRawImage');
     client.subscribe('cameraUrls');
     client.subscribe('stopCamera');
-    client.subscribe('boundingBox');
+    client.subscribe('startStreaming');
 });
 
 client.on('reconnect', function () {
@@ -88,11 +88,11 @@ client.on('message', function (topic, message) {
                 console.log("MQTT==================Project Heimdall Aggregator Server Available to Respond!!\n-----------------------------------\n");
                 break;
             }
-        case 'addCamera':
+        case 'checkCamera':
             {
                 var newDevice = message.toString();
-                addCamera(newDevice, function (error) {
-                    console.log("MQTT==================addCamera Done!!\n-----------------------------------\n");
+                checkCamera(newDevice, function (error) {
+                    console.log("MQTT==================checkCamera Done!!\n-----------------------------------\n");
                 });
                 break;
             }
@@ -122,7 +122,7 @@ client.on('message', function (topic, message) {
                 break;
             }
 
-        case 'boundingBox':
+        case 'startStreaming':
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -172,8 +172,8 @@ if (!fs.existsSync(config.camFolder)) {
 * to test device if it can stream 
 * @param {*string} message 
 */
-var addCamera = function (message, callback) {
-    console.log("CALL -addCamera");
+var checkCamera = function (message, callback) {
+    console.log("CALL -checkCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     var parsedJson = parseJson(message);
@@ -194,7 +194,7 @@ var addCamera = function (message, callback) {
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
-    client.publish('addCameraResponse', strdeviceResult);
+    client.publish('checkCameraResponse', strdeviceResult);
     callback(null);
 }
 
@@ -311,9 +311,14 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     //open the stream
-    const vCap = new cv.VideoCapture(streamingUrl);
+    var vCap;
+    try{
+      vCap   = new cv.VideoCapture(streamingUrl);
+    }catch(error){
+        console.log("Error opening stream : ",error);
+    }
     //fps:frames per second, interval: call to function in interval
-    var fps = vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
+    var fps = 25; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
     var interval = fps;
     //if Compute Engine=cloudComputeEngine
     if (detectionType === "faceDetection") {

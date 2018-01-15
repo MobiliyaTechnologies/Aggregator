@@ -13,7 +13,7 @@ var request = require('request');
 const cv = require('opencv4nodejs');
 var jsonSize = require('json-size');
 var Rsync = require('rsync');
-var serialNumber = require('serial-number');
+var serial = require('node-serial-key');
 var ip = require("ip");
 
 //_________________SERVER CONFIGURATION_________________
@@ -27,7 +27,7 @@ app.listen(port, function () {
 });
 
 //ping mechanism
-serialNumber(function (err, value) {
+serial.getSerial(function (err, value) {
     //Aggregator information 
     var aggregatorData = { "aggregatorName" : "Aggregator01", 
                             "url": "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0", 
@@ -61,7 +61,7 @@ var client = mqtt.connect(MQTTBroker);
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
-    console.log("**CLOUD BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
+    console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
     client.subscribe('checkCamera');
     client.subscribe('getRawImage');
@@ -114,8 +114,9 @@ client.on('message', function (topic, message) {
             }
         case 'cameraUrls':
             {
+		        console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-                    //console.log("Publishing Online Devices....",resultArray)
+                    console.log("Publishing Online Devices....",resultArray.length)
                     client.publish("cameraStatus", JSON.stringify(resultArray));
                     console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
                 });
@@ -126,7 +127,7 @@ client.on('message', function (topic, message) {
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
-                console.log("BBOX ::", parsedJson);
+                //console.log("BBOX ::", parsedJson);
                 //STOP camera call
                 boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
                     startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
@@ -285,6 +286,7 @@ var cameraUrls = function (rtspArray, callback) {
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     rtspArray.forEach(device => {
         try {
+            //console.log("IN IT");
             const vCap = new cv.VideoCapture(device.streamingUrl);
             if (vCap != null) {
                 device.camStatus = 1;

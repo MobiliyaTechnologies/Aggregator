@@ -29,12 +29,12 @@ app.listen(port, function () {
 //ping mechanism
 serial.getSerial(function (err, value) {
     //Aggregator information 
-    var aggregatorData = { "aggregatorName" : "Aggregator01", 
-                            "url": "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0", 
+    var aggregatorData = { "aggregatorName" : config.aggregatorName, 
+                            "url": config.url, 
                             "macId" : value, "ipAddress": ip.address(),
-                            "availability": "yes", 
-                            "location" : "4rth Floor Amar Apex",
-                            "channelId" : "32"
+                            "availability": config.availability, 
+                            "location" : config.location,
+                            "channelId" : config.channelId 
                         };
     var options = {
         url: config.registerAggregator,
@@ -45,8 +45,8 @@ serial.getSerial(function (err, value) {
         if (error) {
             console.log("Error Registering the Aggregator");
         } else {
-            //console.log("Server Pinged Back:: \n	MacID : "+response.body.macId+"\n	DeviceId : "+response.body.aggregatorId); 
-            //var aggregatorId = response.body.aggregatorId;
+            console.log("\n	DeviceId : " + response.body._id); 
+            var aggregatorId = response.body._id;
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -185,13 +185,13 @@ var checkCamera = function (message, callback) {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap !== null) {
             console.log("Camera device can stream!");
-            var deviceResult = { "camdetails": parsedJson, "flag": 1 };
+            var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 1 };
         }
     }
     //console.log("  Device Test Results::", message);
     catch (err) {
         console.log(err);
-        var deviceResult = { "camdetails": parsedJson, "flag": 0 };
+        var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 0 };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
@@ -216,8 +216,8 @@ var base64_encode = function (file) {
 */
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     parsedJson = parseJson(message);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson.userId);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
@@ -239,6 +239,7 @@ var getRawImage = function (message, callback) {
 
             //Sync          
             var rawJsonBody = {
+                userId: parsedJson.userId,
                 imgName: rawImgName,
                 imgBase64: base64Raw
             };
@@ -290,6 +291,7 @@ var cameraUrls = function (rtspArray, callback) {
             const vCap = new cv.VideoCapture(device.streamingUrl);
             if (vCap != null) {
                 device.camStatus = 1;
+                device.userId = parsedJson.userId
             }
         }
         catch (err) {

@@ -185,13 +185,16 @@ var checkCamera = function (message, callback) {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap !== null) {
             console.log("Camera device can stream!");
-            var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 1 };
+            var deviceResult = {
+                //"userId": parsedJson.userId, 
+                "camdetails": parsedJson, "flag": 1 };
         }
     }
     //console.log("  Device Test Results::", message);
     catch (err) {
         console.log(err);
-        var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 0 };
+        var deviceResult = {//"userId": parsedJson.userId,
+         "camdetails": parsedJson, "flag": 0 };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
@@ -211,13 +214,13 @@ var base64_encode = function (file) {
 }
 
 /**
-* to get raw image of camera device
+* to get raw image of cam,era device
 * @param {*string} message camera device data to get raw image 
 */
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     parsedJson = parseJson(message);
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson.userId);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
@@ -225,6 +228,7 @@ var getRawImage = function (message, callback) {
 
     try {
         //open the stream
+        // const v = new cv.VideoCapture(0);
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap != null) {
             console.log("*Opened the stream :", streamingUrl);
@@ -237,14 +241,16 @@ var getRawImage = function (message, callback) {
             var base64Raw = base64_encode(rawImgName);
             base64Raw = "data:image/jpg;base64, " + base64Raw;
 
+            vCap.release();
             //Sync          
             var rawJsonBody = {
-                userId: parsedJson.userId,
+                //userId: parsedJson.userId,
                 imgName: rawImgName,
                 imgBase64: base64Raw
             };
             //MQTT APPROACH
             var rawJsonBodyString = JSON.stringify(rawJsonBody);
+            // console.log("SENDING :: ",rawJsonBodyString);
             client.publish('rawMQTT', rawJsonBodyString);
             callback(null);
             //HTTP
@@ -287,12 +293,11 @@ var cameraUrls = function (rtspArray, callback) {
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     rtspArray.forEach(device => {
         try {
-            //console.log("IN IT");
-            const vCap = new cv.VideoCapture(device.streamingUrl);
-            if (vCap != null) {
+            //const vCap = new cv.VideoCapture(device.streamingUrl);
+            //if (vCap != null) {
                 device.camStatus = 1;
-                device.userId = parsedJson.userId
-            }
+               // device.userId = parsedJson.userId
+            //}
         }
         catch (err) {
             console.log("Camera Device ::Not online ");
@@ -302,6 +307,10 @@ var cameraUrls = function (rtspArray, callback) {
     callback(rtspArray);
 }
 
+// var jetsonCount = 0;
+// var jetsonIP = ['10.9.43.74','10.9.43.75','10.9.43.76','10.9.43.77','10.9.43.78'];
+// var cameraCount =0;
+
 /**
 * to start stream and send images to backend and respective compute engine
 * @param {*string} camId 
@@ -310,7 +319,7 @@ var cameraUrls = function (rtspArray, callback) {
 * @param {*[string]} bboxes 
 * @param {*string} cameraFolder local folderpath to stream
 */
-var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder, configurations) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
@@ -318,6 +327,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     var vCap;
     try{
       vCap   = new cv.VideoCapture(streamingUrl);
+    //  vCap   = new cv.VideoCapture(0);  //for facedetection
     }catch(error){
         console.log("Error opening stream : ",error);
     }
@@ -333,24 +343,26 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     if (vCap != null) {
         console.log("Stream Opened Successfully with fps ::", fps);
     }
-
-    /** Rsync init :source(filePath):local folderpath ,destination: compute engine's folder path*/
+    
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')
         .source(filePath)
-        .destination(config.jetsonFolderPath + camId);
+        .destination( config.jetsonFolderPath + camId );
     console.log("*Sending frames now!!\n``````````````````````````````````\n");
 
     /**
     * To stream continuous frames with interval
     */
+    // var countFrame = 0;
+
     var camInterval = setInterval(function () {
         /**reading next frame */
         let frame = vCap.read();
-
+        // countFrame += 1 ;
+        // console.log("After get frame");
         if (vCap.get(1) % parseInt(fps) == 0) {
-
+            // console.log("After get 1 : in IF");
             //console.log("WRITTEN IMAGE at time :: ", new Date());
             var timestamp = new Date().getTime();
             //composing imagename
@@ -397,6 +409,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                     form.append('areaOfInterest', JSON.stringify(bboxes));
                     form.append('targetUrl', config.cloudServiceTargetUrl);
                     form.append('timestamp', timestamp);
+                    form.append('configurations',configurations);
                     form.append('file',
                         fs.createReadStream(imageFullPath).on('end', function () {
                             console.log("***File sent to compute engine***");
@@ -432,7 +445,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     /**To maintain live camera array */
     liveCamIntervalArray.push({
         camId: camId,
-        intervalObj: camInterval
+        intervalObj: camInterval,
+        vCapObj : vCap
     });
 }
 
@@ -450,7 +464,8 @@ var boundingBox = function (message, callback) {
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
-
+    var configurations = parsedJson.frameWidth;
+        
     //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
@@ -458,11 +473,11 @@ var boundingBox = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("cameraId directory created successfully!");
-                callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+                callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder, configurations);
             }
         });
     } else
-        callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+        callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder, configurations);
 };
 
 /**
@@ -479,6 +494,7 @@ var stopCamera = function (message, callback) {
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             clearInterval(cam.intervalObj);
+            cam.vCapObj.release();
             //to remove stopped live camera 
             liveCamIntervalArray.splice(i, i + 1);
         }

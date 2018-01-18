@@ -415,7 +415,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                 imgBase64: base64Raw
             };
             var options = {
-                url: config.host + config.sendLiveStreamUploadURL,
+                url: config.sendLiveStreamUploadURL,
                 method: 'POST',
                 json: imgJsonBody
             }

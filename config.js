@@ -15,10 +15,10 @@ config.availability = "yes";
  * mqttBroker : Aggregator and WebApp communication
  */
 //config.mqttBroker = "mqtt://52.177.169.81:1887";
-config.mqttBroker = "mqtt://10.9.43.104:1885";
+config.mqttBroker = "mqtt://10.9.43.104:1883";
 
 //config.host = "http://52.177.169.81:5008";
-config.host = "http://10.9.44.39:5008";
+config.host = "http://10.9.42.211:5009";
 
 config.cloudComputeEngine = "http://localhost:5003";
 
@@ -26,7 +26,7 @@ config.registerAggregator = config.host + "/devices/aggregators";
 /**
  * Target jetson path
  */
-config.jetsonFolderPath = "ubuntu@10.9.44.132:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
+config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
 /**
  * URL of VM to send images
  */

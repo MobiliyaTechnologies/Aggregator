@@ -23,6 +23,7 @@
     "json-size": "^1.0.0",
     "mkdirp": "^0.5.1",
     "mqtt": "^2.14.0",
+    "node-serial-key": "0.0.3",
     "opencv4nodejs": "^2.26.1",
     "parse-json": "^4.0.0",
     "python-shell": "^0.4.0",

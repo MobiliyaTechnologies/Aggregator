@@ -185,13 +185,17 @@ var checkCamera = function (message, callback) {
         const vCap = new cv.VideoCapture(streamingUrl);
         if (vCap !== null) {
             console.log("Camera device can stream!");
-            var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 1 };
+            var deviceResult = {
+                // "userId": parsedJson.userId, 
+                "camdetails": parsedJson, "flag": 1 };
         }
     }
     //console.log("  Device Test Results::", message);
     catch (err) {
         console.log(err);
-        var deviceResult = {"userId": parsedJson.userId, "camdetails": parsedJson, "flag": 0 };
+        var deviceResult = {
+            // "userId": parsedJson.userId, 
+            "camdetails": parsedJson, "flag": 0 };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
@@ -217,7 +221,7 @@ var base64_encode = function (file) {
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     parsedJson = parseJson(message);
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson.userId);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
@@ -236,10 +240,10 @@ var getRawImage = function (message, callback) {
             //convert to base64
             var base64Raw = base64_encode(rawImgName);
             base64Raw = "data:image/jpg;base64, " + base64Raw;
-
+            vCap.release();
             //Sync          
             var rawJsonBody = {
-                userId: parsedJson.userId,
+                // userId: parsedJson.userId,
                 imgName: rawImgName,
                 imgBase64: base64Raw
             };
@@ -291,8 +295,10 @@ var cameraUrls = function (rtspArray, callback) {
             const vCap = new cv.VideoCapture(device.streamingUrl);
             if (vCap != null) {
                 device.camStatus = 1;
-                device.userId = parsedJson.userId
+                vCap.release();
+                // device.userId = parsedJson.userId
             }
+            // vCap.release();
         }
         catch (err) {
             console.log("Camera Device ::Not online ");
@@ -432,7 +438,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     /**To maintain live camera array */
     liveCamIntervalArray.push({
         camId: camId,
-        intervalObj: camInterval
+        intervalObj: camInterval,
+        vCapObj : vCap
     });
 }
 
@@ -480,6 +487,7 @@ var stopCamera = function (message, callback) {
         if (camIds.includes(cam.camId)) {
             clearInterval(cam.intervalObj);
             //to remove stopped live camera 
+            cam.vCapObj.release();
             liveCamIntervalArray.splice(i, i + 1);
         }
     });

@@ -16,6 +16,7 @@ var Rsync = require('rsync');
 var serial = require('node-serial-key');
 var ip = require("ip");
 
+var aggregatorId;
 //_________________SERVER CONFIGURATION_________________
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -46,7 +47,8 @@ serial.getSerial(function (err, value) {
             console.log("Error Registering the Aggregator");
         } else {
             console.log("\n	DeviceId : " + response.body._id); 
-            var aggregatorId = response.body._id;
+            //aggregatorId = response.body._id;
+            aggregatorId = "";
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -58,16 +60,23 @@ var liveCamIntervalArray = [];
 //Connect MQTT Broker
 var MQTTBroker = config.mqttBroker;
 var client = mqtt.connect(MQTTBroker);
+aggregatorId ="655";
+var checkCamera = 'checkCamera_'+aggregatorId;
+var getRawImage = 'getRawImage_'+aggregatorId;
+var cameraUrls = 'cameraUrls_'+aggregatorId;
+var stopCamera = 'stopCamera_'+aggregatorId;
+var startStreaming = 'startStreaming_'+aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    client.subscribe('checkCamera');
-    client.subscribe('getRawImage');
-    client.subscribe('cameraUrls');
-    client.subscribe('stopCamera');
-    client.subscribe('startStreaming');
+    console.log(checkCamera);
+    client.subscribe(checkCamera);
+    client.subscribe(getRawImage);
+    client.subscribe(cameraUrls);
+    client.subscribe(stopCamera);
+    client.subscribe(startStreaming);
 });
 
 client.on('reconnect', function () {
@@ -88,7 +97,7 @@ client.on('message', function (topic, message) {
                 console.log("MQTT==================Project Heimdall Aggregator Server Available to Respond!!\n-----------------------------------\n");
                 break;
             }
-        case 'checkCamera':
+        case checkCamera:
             {
                 var newDevice = message.toString();
                 checkCamera(newDevice, function (error) {
@@ -96,7 +105,7 @@ client.on('message', function (topic, message) {
                 });
                 break;
             }
-        case 'getRawImage':
+        case getRawImage:
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -112,7 +121,7 @@ client.on('message', function (topic, message) {
 
                 break;
             }
-        case 'cameraUrls':
+        case cameraUrls:
             {
 		        console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
@@ -123,7 +132,7 @@ client.on('message', function (topic, message) {
                 break;
             }
 
-        case 'startStreaming':
+        case startStreaming:
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -137,7 +146,7 @@ client.on('message', function (topic, message) {
                 break;
             }
 
-        case 'stopCamera':
+        case stopCamera:
             {
                 var camIds = message.toString();
                 console.log("\n*Stop these cameras ::", JSON.stringify(camIds));
@@ -188,6 +197,7 @@ var checkCamera = function (message, callback) {
             var deviceResult = {
                 // "userId": parsedJson.userId, 
                 "camdetails": parsedJson, "flag": 1 };
+            vCap.release();
         }
     }
     //console.log("  Device Test Results::", message);
@@ -229,18 +239,23 @@ var getRawImage = function (message, callback) {
 
     try {
         //open the stream
-        const vCap = new cv.VideoCapture(streamingUrl);
+        const vCap = new cv.VideoCapture(streamingUrl,function(){
+            console.log("In callback of getrawimage!");
+        });
         if (vCap != null) {
             console.log("*Opened the stream :", streamingUrl);
 
-            let raw = vCap.read();
+            vCap.readAsync((err, frame) => {
+                var raw =frame;
+            });
+            vCap.release();
             var rawImgName = "./" + camId + ".jpg";
             //write image to local FS
             cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
             //convert to base64
             var base64Raw = base64_encode(rawImgName);
             base64Raw = "data:image/jpg;base64, " + base64Raw;
-            vCap.release();
+            
             //Sync          
             var rawJsonBody = {
                 // userId: parsedJson.userId,
@@ -293,6 +308,7 @@ var cameraUrls = function (rtspArray, callback) {
         try {
             //console.log("IN IT");
             const vCap = new cv.VideoCapture(device.streamingUrl);
+
             if (vCap != null) {
                 device.camStatus = 1;
                 vCap.release();

@@ -60,23 +60,22 @@ var liveCamIntervalArray = [];
 //Connect MQTT Broker
 var MQTTBroker = config.mqttBroker;
 var client = mqtt.connect(MQTTBroker);
-aggregatorId ="655";
-var checkCamera = 'checkCamera_'+aggregatorId;
-var getRawImage = 'getRawImage_'+aggregatorId;
-var cameraUrls = 'cameraUrls_'+aggregatorId;
-var stopCamera = 'stopCamera_'+aggregatorId;
-var startStreaming = 'startStreaming_'+aggregatorId;
+aggregatorId ="";
+var checkCameraTopic = 'checkCamera/'+aggregatorId;
+var getRawImageTopic = 'getRawImage/'+aggregatorId;
+var cameraUrlsTopic = 'cameraUrls/'+aggregatorId;
+var stopCameraTopic = 'stopCamera/'+aggregatorId;
+var startStreamingTopic = 'startStreaming/'+aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    console.log(checkCamera);
-    client.subscribe(checkCamera);
-    client.subscribe(getRawImage);
-    client.subscribe(cameraUrls);
-    client.subscribe(stopCamera);
-    client.subscribe(startStreaming);
+    client.subscribe(checkCameraTopic);
+    client.subscribe(getRawImageTopic);
+    client.subscribe(cameraUrlsTopic);
+    client.subscribe(stopCameraTopic);
+    client.subscribe(startStreamingTopic);
 });
 
 client.on('reconnect', function () {
@@ -97,7 +96,7 @@ client.on('message', function (topic, message) {
                 console.log("MQTT==================Project Heimdall Aggregator Server Available to Respond!!\n-----------------------------------\n");
                 break;
             }
-        case checkCamera:
+        case checkCameraTopic:
             {
                 var newDevice = message.toString();
                 checkCamera(newDevice, function (error) {
@@ -105,7 +104,7 @@ client.on('message', function (topic, message) {
                 });
                 break;
             }
-        case getRawImage:
+        case getRawImageTopic:
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -121,7 +120,7 @@ client.on('message', function (topic, message) {
 
                 break;
             }
-        case cameraUrls:
+        case cameraUrlsTopic:
             {
 		        console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
                 cameraUrls(JSON.parse(message.toString()), function (resultArray) {
@@ -132,7 +131,7 @@ client.on('message', function (topic, message) {
                 break;
             }
 
-        case startStreaming:
+        case startStreamingTopic:
             {
                 var sendData = message.toString();
                 var parsedJson = parseJson(sendData);
@@ -146,7 +145,7 @@ client.on('message', function (topic, message) {
                 break;
             }
 
-        case stopCamera:
+        case stopCameraTopic:
             {
                 var camIds = message.toString();
                 console.log("\n*Stop these cameras ::", JSON.stringify(camIds));

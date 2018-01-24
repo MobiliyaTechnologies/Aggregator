@@ -27,10 +27,18 @@ app.listen(port, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
 
+
+//Connect MQTT Broker
+var MQTTBroker = config.mqttBroker;
+var client = mqtt.connect(MQTTBroker);
+// aggregatorId ="";
+
+var checkCameraTopic,getRawImageTopic,cameraUrlsTopic,stopCameraTopic,startStreamingTopic;
+
 //ping mechanism
 serial.getSerial(function (err, value) {
     //Aggregator information 
-    var aggregatorData = { "aggregatorName" : config.aggregatorName, 
+    var aggregatorData = { "name" : config.aggregatorName, 
                             "url": config.url, 
                             "macId" : value, "ipAddress": ip.address(),
                             "availability": config.availability, 
@@ -38,6 +46,7 @@ serial.getSerial(function (err, value) {
                             "channelId" : config.channelId 
                         };
     var options = {
+        rejectUnauthorized: false,
         url: config.registerAggregator,
         method: 'POST',
         json: aggregatorData
@@ -47,8 +56,18 @@ serial.getSerial(function (err, value) {
             console.log("Error Registering the Aggregator");
         } else {
             console.log("\n	DeviceId : " + response.body._id); 
-            //aggregatorId = response.body._id;
-            aggregatorId = "";
+            aggregatorId = response.body._id;
+            // aggregatorId = "";
+            checkCameraTopic = 'checkCamera/'+aggregatorId;
+            getRawImageTopic = 'getRawImage/'+aggregatorId;
+            cameraUrlsTopic = 'cameraUrls';
+            stopCameraTopic = 'stopCamera/'+aggregatorId;
+            startStreamingTopic = 'startStreaming/'+aggregatorId;
+            client.subscribe(checkCameraTopic);
+            client.subscribe(getRawImageTopic);
+            client.subscribe(cameraUrlsTopic);
+            client.subscribe(stopCameraTopic);
+            client.subscribe(startStreamingTopic);
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -57,25 +76,11 @@ serial.getSerial(function (err, value) {
 //to keep track of live cameras
 var liveCamIntervalArray = [];
 
-//Connect MQTT Broker
-var MQTTBroker = config.mqttBroker;
-var client = mqtt.connect(MQTTBroker);
-aggregatorId ="";
-var checkCameraTopic = 'checkCamera'+aggregatorId;
-var getRawImageTopic = 'getRawImage'+aggregatorId;
-var cameraUrlsTopic = 'cameraUrls'+aggregatorId;
-var stopCameraTopic = 'stopCamera'+aggregatorId;
-var startStreamingTopic = 'startStreaming'+aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    client.subscribe(checkCameraTopic);
-    client.subscribe(getRawImageTopic);
-    client.subscribe(cameraUrlsTopic);
-    client.subscribe(stopCameraTopic);
-    client.subscribe(startStreamingTopic);
 });
 
 client.on('reconnect', function () {
@@ -305,13 +310,13 @@ var cameraUrls = function (rtspArray, callback) {
     rtspArray.forEach(device => {
         try {
             //console.log("IN IT");
-            const vCap = new cv.VideoCapture(device.streamingUrl);
+            // const vCap = new cv.VideoCapture(device.streamingUrl);
 
-            if (vCap != null) {
+            // if (vCap != null) {
                 device.camStatus = 1;
-                vCap.release();
+                // vCap.release();
                 // device.userId = parsedJson.userId
-            }
+            // }
             // vCap.release();
         }
         catch (err) {
@@ -332,7 +337,7 @@ var cameraUrls = function (rtspArray, callback) {
 */
 var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
     console.log("CALL -startLiveStreaming");
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~ : ",detectionType);
 
     //open the stream
     var vCap;
@@ -343,7 +348,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
         console.log("Error opening stream : ",error);
     }
     //fps:frames per second, interval: call to function in interval
-    var fps = 25; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
+    var fps = 50; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
     var interval = fps;
     //if Compute Engine=cloudComputeEngine
     if (detectionType === "faceDetection") {
@@ -368,8 +373,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     */
     var camInterval = setInterval(function () {
         /**reading next frame */
-        //let frame = vCap.read();
-        vCap.readAsync((err, frame) => {
+        let frame = vCap.read();
+       
             if ( countframe%fps == 0) {
                 
                             //console.log("WRITTEN IMAGE at time :: ", new Date());
@@ -436,6 +441,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                 imgBase64: base64Raw
                             };
                             var options = {
+                                rejectUnauthorized: false,
                                 url: config.sendLiveStreamUploadURL,
                                 method: 'POST',
                                 json: imgJsonBody
@@ -449,7 +455,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                             })
                         }
                         countframe= countframe+1;
-        });
+  
 
     }, 1000 / interval);
 

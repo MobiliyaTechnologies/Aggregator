@@ -1,3 +1,4 @@
+
 var config = require('./config');
 var path = require('path');
 var express = require('express');
@@ -15,7 +16,9 @@ var jsonSize = require('json-size');
 var Rsync = require('rsync');
 var serial = require('node-serial-key');
 var ip = require("ip");
+const fileUpload = require('express-fileupload');
 
+app.use(fileUpload());
 var aggregatorId;
 //_________________SERVER CONFIGURATION_________________
 app.use(bodyParser.json());
@@ -27,26 +30,18 @@ app.listen(port, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
 
-
-//Connect MQTT Broker
-var MQTTBroker = config.mqttBroker;
-var client = mqtt.connect(MQTTBroker);
-// aggregatorId ="";
-
-var checkCameraTopic,getRawImageTopic,cameraUrlsTopic,stopCameraTopic,startStreamingTopic;
-
 //ping mechanism
 serial.getSerial(function (err, value) {
     //Aggregator information 
-    var aggregatorData = { "name" : config.aggregatorName, 
-                            "url": config.url, 
-                            "macId" : value, "ipAddress": ip.address(),
-                            "availability": config.availability, 
-                            "location" : config.location,
-                            "channelId" : config.channelId 
-                        };
+    var aggregatorData = {
+        "aggregatorName": config.aggregatorName,
+        "url": config.url,
+        "macId": value, "ipAddress": ip.address(),
+        "availability": config.availability,
+        "location": config.location,
+        "channelId": config.channelId
+    };
     var options = {
-        rejectUnauthorized: false,
         url: config.registerAggregator,
         method: 'POST',
         json: aggregatorData
@@ -55,19 +50,9 @@ serial.getSerial(function (err, value) {
         if (error) {
             console.log("Error Registering the Aggregator");
         } else {
-            console.log("\n	DeviceId : " + response.body._id); 
-            aggregatorId = response.body._id;
-            // aggregatorId = "";
-            checkCameraTopic = 'checkCamera/'+aggregatorId;
-            getRawImageTopic = 'getRawImage/'+aggregatorId;
-            cameraUrlsTopic = 'cameraUrls';
-            stopCameraTopic = 'stopCamera/'+aggregatorId;
-            startStreamingTopic = 'startStreaming/'+aggregatorId;
-            client.subscribe(checkCameraTopic);
-            client.subscribe(getRawImageTopic);
-            client.subscribe(cameraUrlsTopic);
-            client.subscribe(stopCameraTopic);
-            client.subscribe(startStreamingTopic);
+            console.log("\n	DeviceId : " + response.body._id);
+            //aggregatorId = response.body._id;
+            aggregatorId = "";
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -76,20 +61,34 @@ serial.getSerial(function (err, value) {
 //to keep track of live cameras
 var liveCamIntervalArray = [];
 
+//Connect MQTT Broker
+var MQTTBroker = config.mqttBroker;
+var client = mqtt.connect(MQTTBroker);
+aggregatorId = "";
+var checkCameraTopic = 'checkCamera' + aggregatorId;
+var getRawImageTopic = 'getRawImage' + aggregatorId;
+var cameraUrlsTopic = 'cameraUrls' + aggregatorId;
+var stopCameraTopic = 'stopCamera' + aggregatorId;
+var startStreamingTopic = 'startStreaming' + aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
+    client.subscribe(checkCameraTopic);
+    client.subscribe(getRawImageTopic);
+    client.subscribe(cameraUrlsTopic);
+    client.subscribe(stopCameraTopic);
+    client.subscribe(startStreamingTopic);
 });
-
+/*
 client.on('reconnect', function () {
     console.log("\n**BROKER STATUS :: \n  Trying to  reconnect MQTT broker!\n-----------------------------------\n");
 });
 
 client.on('close', function () { console.log("\n**BROKER STATUS :: \n     CLOSED connection with MQTT broker!\n-----------------------------------\n"); });
 //_________________SERVER CONFIGURATION  DONE_________________
-
+*/
 //_________________Handling Messages_________________
 
 client.on('message', function (topic, message) {
@@ -125,16 +124,16 @@ client.on('message', function (topic, message) {
 
                 break;
             }
-        case cameraUrlsTopic:
-            {
-		        //console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
-                cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-                    console.log("Publishing Online Devices....",resultArray.length)
-                    client.publish("cameraStatus", JSON.stringify(resultArray));
-                    console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
-                });
-                break;
-            }
+        // case cameraUrlsTopic:
+        //     {
+        //         //console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
+        //         cameraUrls(JSON.parse(message.toString()), function (resultArray) {
+        //             console.log("Publishing Online Devices....", resultArray.length)
+        //             client.publish("cameraStatus", JSON.stringify(resultArray));
+        //             console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
+        //         });
+        //         break;
+        //     }
 
         case startStreamingTopic:
             {
@@ -142,11 +141,12 @@ client.on('message', function (topic, message) {
                 var parsedJson = parseJson(sendData);
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
-                boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
-                    startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
-                    console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
-                });
-
+                if (parsedJson.deviceName !== '360') {
+                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
+                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
+                        console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
+                    });
+                }
                 break;
             }
 
@@ -182,6 +182,149 @@ if (!fs.existsSync(config.camFolder)) {
 }
 
 //________________________Functions________________________
+
+if (!fs.existsSync(config.imageDirectory)) {
+    mkdirp(config.imageDirectory, function (err) {
+        if (err) {
+            return console.error(err);
+        }
+        console.log("Directory created successfully! ");
+    });
+}
+
+app.get('/', function (req, res) {
+    console.log("Hello");
+    res.send("Aggregator alive");
+})
+
+app.post('/sendImage', function (req, res) {
+    if (!req.files)
+        return res.status(400).send('No files were uploaded.');
+    let sampleFile = req.files.file;
+    console.log("File received with name :: ", req.files.file.name);
+    var imageName = req.files.file.name;
+    var imageType = JSON.parse(req.body.flag)
+
+    console.log("IMAGE TYPE ::", imageType);
+    sampleFile.mv(config.imageDirectory + '/' + imageName, function (err) {
+        if (err) {
+            return res.status(500).send(err);
+        }
+        var timestamp = new Date();
+        console.log("\n\n       {{{{{{{IMAGE CAME AT}}}}}} ::", timestamp);
+        res.send({ 'result': 'File accepted !' });
+
+        deWrapImage(imageName, function (error) {
+            console.log("\n\n");
+        });
+    });
+
+});
+
+var deWrapImage = function (imageName, callback) {
+    var sourcePath = config.imageDirectory + '/' + imageName;
+
+    var targetPath = [];
+    targetPath.push('1_' + imageName);
+    targetPath.push('2_' + imageName);
+    targetPath.push('3_' + imageName);
+    targetPath.push('4_' + imageName);
+
+    console.log("STARTING DEWARP for ::",imageName);
+
+    // console.log('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
+    ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------ONE DWARP\n\n");
+            rsyncInterval(0, targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
+            sendImages(targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
+        });
+
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[1],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------TWO DWARP\n\n");
+            rsyncInterval(2000, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
+            sendImages(targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
+        });
+
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[2],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------THREE DWARP\n\n");
+            rsyncInterval(4000, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
+            sendImages(targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
+        });
+
+    ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[3],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------FOUR DWARP\n\n");
+            rsyncInterval(6000, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
+            sendImages(targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
+        });
+    callback(null);
+}
+
+var rsyncInterval = function (timeInterval, imgName, imgPath) {
+    if (!fs.existsSync('./360.jpg')) {
+        fs.createReadStream(imgPath).pipe(fs.createWriteStream('360.jpg'));
+    }
+
+    setTimeout(function () {
+        var count = 0;
+        var timestamp = new Date();
+        console.log("\n\nPATH______________________",imgPath);
+        console.log("\n\nCalled to Rysnc ::", timestamp);
+
+        if (count === 4) {
+            clearInterval(rsyncInterval);
+            return;
+        }
+
+        var rsync = new Rsync()
+            .shell('ssh')
+            .flags('avz')
+            .source(imgPath)
+            .destination(config.jetsonFolderPath);
+
+        rsync.execute(function (error, code, cmd) {
+            if (error)
+                console.log("Error in rsync ::", error);
+            else {
+                console.log("Rsync done !");
+            }
+        });
+
+        count = count + 1;
+    }, timeInterval);
+}
+var sendImages = function (imgName, imgPath) {
+
+    console.log("Img name : " + imgName + " Img Path :" + imgPath);
+    var base64Img = base64_encode(imgPath);
+    base64Img = "data:image/jpg;base64, " + base64Img;
+    // console.log("IMG ::: ", base64Img);
+    var imgJsonBody = {
+        imgName: imgName,
+        imgBase64: base64Img
+    };
+
+    var options = {
+        url: config.sendLiveStreamUploadURL,
+        method: 'POST',
+        json: imgJsonBody
+    }
+    //console.log(options);
+    request(options, function (error, body, response) {
+        if (error) {
+            console.log("ERROR in posting image::" + error);
+        }
+        else {
+            fs.unlinkSync(imgPath);
+            console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+        }
+    });
+}
+
+// deWrapImage('fisheye.jpg');
 /**
 * to test device if it can stream 
 * @param {*string} message 
@@ -192,29 +335,42 @@ var checkCamera = function (message, callback) {
 
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
+    var deviceType = parsedJson.deviceType;
     console.log("DEVICE URL to test::", streamingUrl);
 
-    try {
-        const vCap = new cv.VideoCapture(streamingUrl);
-        if (vCap !== null) {
-            console.log("Camera device can stream!");
+    if (deviceType != 'Mobile') {
+        try {
+            const vCap = new cv.VideoCapture(streamingUrl);
+            if (vCap !== null) {
+                console.log("Camera device can stream!");
+                var deviceResult = {
+                    // "userId": parsedJson.userId, 
+                    "camdetails": parsedJson, "flag": 1
+                };
+                vCap.release();
+            }
+        }
+        //console.log("  Device Test Results::", message);
+        catch (err) {
+            console.log(err);
             var deviceResult = {
                 // "userId": parsedJson.userId, 
-                "camdetails": parsedJson, "flag": 1 };
-            vCap.release();
+                "camdetails": parsedJson, "flag": 0
+            };
         }
     }
-    //console.log("  Device Test Results::", message);
-    catch (err) {
-        console.log(err);
+
+    else {
         var deviceResult = {
             // "userId": parsedJson.userId, 
-            "camdetails": parsedJson, "flag": 0 };
+            "camdetails": parsedJson, "flag": 1
+        };
     }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
     client.publish('checkCameraResponse', strdeviceResult);
     callback(null);
+
 }
 
 /**
@@ -235,67 +391,58 @@ var base64_encode = function (file) {
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     parsedJson = parseJson(message);
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~", parsedJson);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
 
-    try {
-        //open the stream
-        const vCap = new cv.VideoCapture(streamingUrl);
-        if (vCap != null) {
-            console.log("*Opened the stream :", streamingUrl);
+    if (parsedJson.deviceType !== "Mobile") {
+        try {
+            //open the stream
+            const vCap = new cv.VideoCapture(streamingUrl);
+            if (vCap != null) {
+                console.log("*Opened the stream :", streamingUrl);
 
-            vCap.readAsync((err, frame) => {
-                var raw = frame;
-                var rawImgName = "./" + camId + ".jpg";
-                //write image to local FS
-                cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-                //convert to base64
-                var base64Raw = base64_encode(rawImgName);
-                base64Raw = "data:image/jpg;base64, " + base64Raw;
-                
-                //Sync          
-                var rawJsonBody = {
-                    // userId: parsedJson.userId,
-                    imgName: rawImgName,
-                    imgBase64: base64Raw
-                };
-                //MQTT APPROACH
-                var rawJsonBodyString = JSON.stringify(rawJsonBody);
-                client.publish('rawMQTT', rawJsonBodyString);
-                callback(null);
-            });
-            vCap.release();
-            
-            //HTTP
-            /*
-            var options = {
-            url: config.getRawImageUploadURL,
-            method: 'POST',
-            json: rawJsonBody
+                vCap.readAsync((err, frame) => {
+                    var raw = frame;
+                    var rawImgName = "./" + camId + ".jpg";
+                    //write image to local FS
+                    cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                    //convert to base64
+                    var base64Raw = base64_encode(rawImgName);
+                    base64Raw = "data:image/jpg;base64, " + base64Raw;
+
+                    //Sync          
+                    var rawJsonBody = {
+                        // userId: parsedJson.userId,
+                        imgName: rawImgName,
+                        imgBase64: base64Raw
+                    };
+                    //MQTT APPROACH
+                    var rawJsonBodyString = JSON.stringify(rawJsonBody);
+                    client.publish('rawMQTT', rawJsonBodyString);
+                    callback(null);
+                });
+                vCap.release();
             }
-        
-            request(options,function(error, body, response){
-            console.log("ERROR ::" + error);
-            console.log("RESPONSE  :: " + response);
-            })
-        
-            .then(function(result){
-            console.log(result);
-            })
-            .catch(
-            function(err){
-            console.log(err);
-            }
-            )
-            */
         }
-    }
-    catch (err) {
-        console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
-        callback(err);
+        catch (err) {
+            console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
+            callback(err);
+        }
+    } else {
+        var base64Raw = base64_encode("./360.jpg");
+        base64Raw = "data:image/jpg;base64, " + base64Raw;
+        //Syncvar 
+        rawJsonBody = {
+            // userId: parsedJson.userId,
+            imgName: "360.jpg",
+            imgBase64: base64Raw
+        };
+        var rawJsonBodyString = JSON.stringify(rawJsonBody);
+        client.publish('rawMQTT', rawJsonBodyString);
+        callback(null);
     }
 }
 
@@ -337,18 +484,18 @@ var cameraUrls = function (rtspArray, callback) {
 */
 var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
     console.log("CALL -startLiveStreaming");
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~ : ",detectionType);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     //open the stream
     var vCap;
 
-    try{
-      vCap   = new cv.VideoCapture(streamingUrl);
-    }catch(error){
-        console.log("Error opening stream : ",error);
+    try {
+        vCap = new cv.VideoCapture(streamingUrl);
+    } catch (error) {
+        console.log("Error opening stream : ", error);
     }
     //fps:frames per second, interval: call to function in interval
-    var fps = 50; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
+    var fps = 25; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
     var interval = fps;
     //if Compute Engine=cloudComputeEngine
     if (detectionType === "faceDetection") {
@@ -373,89 +520,88 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     */
     var camInterval = setInterval(function () {
         /**reading next frame */
-        let frame = vCap.read();
-       
-            if ( countframe%fps == 0) {
-                
-                            //console.log("WRITTEN IMAGE at time :: ", new Date());
-                            var timestamp = new Date().getTime();
-                            //composing imagename
-                            var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
-                            var imageFullPath = filePath + imageName;
-                
-                            /**to write captured image of camera into local fs */
-                            cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-                            /**
-                            * Base 64 encoding
-                            */
-                            var base64Raw = base64_encode(imageFullPath);
-                            base64Raw = "data:image/jpg;base64, " + base64Raw;
-                
-                            //Sending images to respective compute engine
-                            switch (detectionType) {
-                                case 'humanDetection':
-                                    /**
-                                    * to sync newly added file with compute engine's FS
-                                    */
-                                    rsync.execute(function (error, code, cmd) {
-                                        if (error) {
-                                            console.log("Error in rsync ::", error);
-                                        }
-                                        else {
-                                            console.log("Rsync done !");
-                                        }
-                                        //deleting the sent file 
-                                        fs.unlinkSync(imageFullPath);
-                                    });
-                                    break;
-                
-                                case 'faceDetection':
-                                    /**
-                                    * to send images to cloud compute engine
-                                    */
-                                    var requestObj = request.post(config.cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
-                                        if (err) {
-                                            return console.error('Failed to connect to compute engine:', err);
-                                        }
-                                        console.log('Upload successful!  Compute engine respond : ', body);
-                                    });
-                                    var form = requestObj.form();
-                                    form.append('areaOfInterest', JSON.stringify(bboxes));
-                                    form.append('targetUrl', config.cloudServiceTargetUrl);
-                                    form.append('timestamp', timestamp);
-                                    form.append('file',
-                                        fs.createReadStream(imageFullPath).on('end', function () {
-                                            console.log("***File sent to compute engine***");
-                                        })
-                                    );
-                                    break;
-                                default:
-                                    console.log("Warning : Default Case executed (feature specified not served)!");
+        //let frame = vCap.read();
+        vCap.readAsync((err, frame) => {
+            if (countframe % fps == 0) {
+
+                //console.log("WRITTEN IMAGE at time :: ", new Date());
+                var timestamp = new Date().getTime();
+                //composing imagename
+                var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
+                var imageFullPath = filePath + imageName;
+
+                /**to write captured image of camera into local fs */
+                cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                /**
+                * Base 64 encoding
+                */
+                var base64Raw = base64_encode(imageFullPath);
+                base64Raw = "data:image/jpg;base64, " + base64Raw;
+
+                //Sending images to respective compute engine
+                switch (detectionType) {
+                    case 'humanDetection':
+                        /**
+                        * to sync newly added file with compute engine's FS
+                        */
+                        rsync.execute(function (error, code, cmd) {
+                            if (error) {
+                                console.log("Error in rsync ::", error);
                             }
-                
-                            /**
-                            * send newly added image to web backend
-                            */
-                            var imgJsonBody = {
-                                imgName: imageName,
-                                imgBase64: base64Raw
-                            };
-                            var options = {
-                                rejectUnauthorized: false,
-                                url: config.sendLiveStreamUploadURL,
-                                method: 'POST',
-                                json: imgJsonBody
+                            else {
+                                console.log("Rsync done !");
                             }
-                            request(options, function (error, body, response) {
-                                if (error) {
-                                    console.log("ERROR in posting image::" + error);
-                                }
-                                else
-                                    console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+                            //deleting the sent file 
+                            fs.unlinkSync(imageFullPath);
+                        });
+                        break;
+
+                    case 'faceDetection':
+                        /**
+                        * to send images to cloud compute engine
+                        */
+                        var requestObj = request.post(config.cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
+                            if (err) {
+                                return console.error('Failed to connect to compute engine:', err);
+                            }
+                            console.log('Upload successful!  Compute engine respond : ', body);
+                        });
+                        var form = requestObj.form();
+                        form.append('areaOfInterest', JSON.stringify(bboxes));
+                        form.append('targetUrl', config.cloudServiceTargetUrl);
+                        form.append('timestamp', timestamp);
+                        form.append('file',
+                            fs.createReadStream(imageFullPath).on('end', function () {
+                                console.log("***File sent to compute engine***");
                             })
-                        }
-                        countframe= countframe+1;
-  
+                        );
+                        break;
+                    default:
+                        console.log("Warning : Default Case executed (feature specified not served)!");
+                }
+
+                /**
+                * send newly added image to web backend
+                */
+                var imgJsonBody = {
+                    imgName: imageName,
+                    imgBase64: base64Raw
+                };
+                var options = {
+                    url: config.sendLiveStreamUploadURL,
+                    method: 'POST',
+                    json: imgJsonBody
+                }
+                request(options, function (error, body, response) {
+                    if (error) {
+                        console.log("ERROR in posting image::" + error);
+                    }
+                    else
+                        console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+                });
+            }
+            countframe = countframe + 1;
+        });
 
     }, 1000 / interval);
 
@@ -463,7 +609,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     liveCamIntervalArray.push({
         camId: camId,
         intervalObj: camInterval,
-        vCapObj : vCap
+        vCapObj: vCap
     });
 }
 

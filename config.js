@@ -28,7 +28,7 @@ config.registerAggregator = config.host + "/devices/aggregators";
  * Target jetson path
  */
 // config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/Compute-Engine-Yolo/darknet/Cameras/Cam5a706b7c82899a4550d4d2fb";
+config.jetsonFolderPath = "nvidia@10.9.43.75:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam5a706b7c82899a4550d4d2fb";
 // config.jetsonFolderPath = "nvidia@10.9.43.74:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam";
 /**
  * URL of VM to send images

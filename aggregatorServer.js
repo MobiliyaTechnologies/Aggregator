@@ -29,19 +29,24 @@ var port = config.port;
 app.listen(port, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
+//Connect MQTT Broker
+var MQTTBroker = config.mqttBroker;
+var client = mqtt.connect(MQTTBroker);
+
+var checkCameraTopic,getRawImageTopic,cameraUrlsTopic,stopCameraTopic,startStreamingTopic;
 
 //ping mechanism
 serial.getSerial(function (err, value) {
     //Aggregator information 
-    var aggregatorData = {
-        "aggregatorName": config.aggregatorName,
-        "url": config.url,
-        "macId": value, "ipAddress": ip.address(),
-        "availability": config.availability,
-        "location": config.location,
-        "channelId": config.channelId
-    };
+    var aggregatorData = { "name" : config.aggregatorName, 
+                            "url": config.url, 
+                            "macId" : value, "ipAddress": ip.address(),
+                            "availability": config.availability, 
+                            "location" : config.location,
+                            "channelId" : config.channelId 
+                        };
     var options = {
+        rejectUnauthorized: false,
         url: config.registerAggregator,
         method: 'POST',
         json: aggregatorData
@@ -50,9 +55,19 @@ serial.getSerial(function (err, value) {
         if (error) {
             console.log("Error Registering the Aggregator");
         } else {
-            console.log("\n	DeviceId : " + response.body._id);
-            //aggregatorId = response.body._id;
-            aggregatorId = "";
+            console.log("\n	DeviceId : " + response.body._id); 
+            aggregatorId = response.body._id;
+            // aggregatorId = "";
+            checkCameraTopic = 'checkCamera/'+aggregatorId;
+            getRawImageTopic = 'getRawImage/'+aggregatorId;
+            cameraUrlsTopic = 'cameraUrls';
+            stopCameraTopic = 'stopCamera/'+aggregatorId;
+            startStreamingTopic = 'startStreaming/'+aggregatorId;
+            client.subscribe(checkCameraTopic);
+            client.subscribe(getRawImageTopic);
+            client.subscribe(cameraUrlsTopic);
+            client.subscribe(stopCameraTopic);
+            client.subscribe(startStreamingTopic);
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -61,26 +76,13 @@ serial.getSerial(function (err, value) {
 //to keep track of live cameras
 var liveCamIntervalArray = [];
 
-//Connect MQTT Broker
-var MQTTBroker = config.mqttBroker;
-var client = mqtt.connect(MQTTBroker);
-aggregatorId = "";
-var checkCameraTopic = 'checkCamera' + aggregatorId;
-var getRawImageTopic = 'getRawImage' + aggregatorId;
-var cameraUrlsTopic = 'cameraUrls' + aggregatorId;
-var stopCameraTopic = 'stopCamera' + aggregatorId;
-var startStreamingTopic = 'startStreaming' + aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    client.subscribe(checkCameraTopic);
-    client.subscribe(getRawImageTopic);
-    client.subscribe(cameraUrlsTopic);
-    client.subscribe(stopCameraTopic);
-    client.subscribe(startStreamingTopic);
 });
+
 /*
 client.on('reconnect', function () {
     console.log("\n**BROKER STATUS :: \n  Trying to  reconnect MQTT broker!\n-----------------------------------\n");
@@ -268,6 +270,14 @@ var rsyncInterval = function (timeInterval, imgName, imgPath) {
         fs.createReadStream(imgPath).pipe(fs.createWriteStream('360.jpg'));
     }
 
+    console.log("RSYNC SRC ::", imgPath);
+    console.log("RSYNC TRGT ::", config.jetsonFolderPath);
+    var rsync = new Rsync()
+        .shell('ssh')
+        .flags('avz')
+        .source(imgPath)
+        .destination(config.jetsonFolderPath);
+
     setTimeout(function () {
         var count = 0;
         var timestamp = new Date();
@@ -278,17 +288,11 @@ var rsyncInterval = function (timeInterval, imgName, imgPath) {
             clearInterval(rsyncInterval);
             return;
         }
-
-        var rsync = new Rsync()
-            .shell('ssh')
-            .flags('avz')
-            .source(imgPath)
-            .destination(config.jetsonFolderPath);
-
         rsync.execute(function (error, code, cmd) {
             if (error)
                 console.log("Error in rsync ::", error);
             else {
+                fs.unlinkSync(imgPath);
                 console.log("Rsync done !");
             }
         });
@@ -318,7 +322,7 @@ var sendImages = function (imgName, imgPath) {
             console.log("ERROR in posting image::" + error);
         }
         else {
-            fs.unlinkSync(imgPath);
+            // fs.unlinkSync(imgPath);
             console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
         }
     });
@@ -344,7 +348,7 @@ var checkCamera = function (message, callback) {
             if (vCap !== null) {
                 console.log("Camera device can stream!");
                 var deviceResult = {
-                    // "userId": parsedJson.userId, 
+                    "userId": parsedJson.userId, 
                     "camdetails": parsedJson, "flag": 1
                 };
                 vCap.release();
@@ -354,7 +358,7 @@ var checkCamera = function (message, callback) {
         catch (err) {
             console.log(err);
             var deviceResult = {
-                // "userId": parsedJson.userId, 
+                 "userId": parsedJson.userId, 
                 "camdetails": parsedJson, "flag": 0
             };
         }
@@ -362,7 +366,7 @@ var checkCamera = function (message, callback) {
 
     else {
         var deviceResult = {
-            // "userId": parsedJson.userId, 
+            "userId": parsedJson.userId, 
             "camdetails": parsedJson, "flag": 1
         };
     }
@@ -415,7 +419,7 @@ var getRawImage = function (message, callback) {
 
                     //Sync          
                     var rawJsonBody = {
-                        // userId: parsedJson.userId,
+                        userId: parsedJson.userId,
                         imgName: rawImgName,
                         imgBase64: base64Raw
                     };
@@ -436,7 +440,7 @@ var getRawImage = function (message, callback) {
         base64Raw = "data:image/jpg;base64, " + base64Raw;
         //Syncvar 
         rawJsonBody = {
-            // userId: parsedJson.userId,
+            userId: parsedJson.userId,
             imgName: "360.jpg",
             imgBase64: base64Raw
         };

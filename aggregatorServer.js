@@ -126,16 +126,16 @@ client.on('message', function (topic, message) {
 
                 break;
             }
-        // case cameraUrlsTopic:
-        //     {
-        //         //console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
-        //         cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-        //             console.log("Publishing Online Devices....", resultArray.length)
-        //             client.publish("cameraStatus", JSON.stringify(resultArray));
-        //             console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
-        //         });
-        //         break;
-        //     }
+        case cameraUrlsTopic:
+            {
+		        //console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
+                cameraUrls(JSON.parse(message.toString()), function (resultArray) {
+                    console.log("Publishing Online Devices....",resultArray.length)
+                    client.publish("cameraStatus", JSON.stringify(resultArray));
+                    console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
+                });
+                break;
+            }
 
         case startStreamingTopic:
             {
@@ -143,7 +143,7 @@ client.on('message', function (topic, message) {
                 var parsedJson = parseJson(sendData);
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
-                if (parsedJson.deviceName !== '360') {
+                if (parsedJson.deviceType !== "Mobile") {
                     boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
                         startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
                         console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
@@ -524,88 +524,90 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     */
     var camInterval = setInterval(function () {
         /**reading next frame */
-        //let frame = vCap.read();
-        vCap.readAsync((err, frame) => {
-            if (countframe % fps == 0) {
-
-                //console.log("WRITTEN IMAGE at time :: ", new Date());
-                var timestamp = new Date().getTime();
-                //composing imagename
-                var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
-                var imageFullPath = filePath + imageName;
-
-                /**to write captured image of camera into local fs */
-                cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-                /**
-                * Base 64 encoding
-                */
-                var base64Raw = base64_encode(imageFullPath);
-                base64Raw = "data:image/jpg;base64, " + base64Raw;
-
-                //Sending images to respective compute engine
-                switch (detectionType) {
-                    case 'humanDetection':
-                        /**
-                        * to sync newly added file with compute engine's FS
-                        */
-                        rsync.execute(function (error, code, cmd) {
-                            if (error) {
-                                console.log("Error in rsync ::", error);
+        let frame = vCap.read();
+       
+            if ( countframe%fps == 0) {
+                
+                            //console.log("WRITTEN IMAGE at time :: ", new Date());
+                            var timestamp = new Date().getTime();
+                            //composing imagename
+                            var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
+                            var imageFullPath = filePath + imageName;
+                
+                            /**to write captured image of camera into local fs */
+                            cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                            /**
+                            * Base 64 encoding
+                            */
+                            var base64Raw = base64_encode(imageFullPath);
+                            base64Raw = "data:image/jpg;base64, " + base64Raw;
+                
+                            //Sending images to respective compute engine
+                            switch (detectionType) {
+                                case 'humanDetection':
+                                    /**
+                                    * to sync newly added file with compute engine's FS
+                                    */
+                                    rsync.execute(function (error, code, cmd) {
+                                        if (error) {
+                                            console.log("Error in rsync ::", error);
+                                        }
+                                        else {
+                                            console.log("Rsync done !");
+                                        }
+                                        //deleting the sent file 
+                                        console.log("IMG path :: ",imageFullPath);
+                                        fs.unlinkSync(imageFullPath);
+                                    });
+                                    break;
+                
+                                case 'faceDetection':
+                                    /**
+                                    * to send images to cloud compute engine
+                                    */
+                                    var requestObj = request.post(config.cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
+                                        if (err) {
+                                            return console.error('Failed to connect to compute engine:', err);
+                                        }
+                                        console.log('Upload successful!  Compute engine respond : ', body);
+                                    });
+                                    var form = requestObj.form();
+                                    form.append('areaOfInterest', JSON.stringify(bboxes));
+                                    form.append('targetUrl', config.cloudServiceTargetUrl);
+                                    form.append('timestamp', timestamp);
+                                    form.append('file',
+                                        fs.createReadStream(imageFullPath).on('end', function () {
+                                            console.log("***File sent to compute engine***");
+                                        })
+                                    );
+                                    break;
+                                default:
+                                    console.log("Warning : Default Case executed (feature specified not served)!");
                             }
-                            else {
-                                console.log("Rsync done !");
+                
+                            /**
+                            * send newly added image to web backend
+                            */
+                            var imgJsonBody = {
+                                imgName: imageName,
+                                imgBase64: base64Raw
+                            };
+                            var options = {
+                                rejectUnauthorized: false,
+                                url: config.sendLiveStreamUploadURL,
+                                method: 'POST',
+                                json: imgJsonBody
                             }
-                            //deleting the sent file 
-                            fs.unlinkSync(imageFullPath);
-                        });
-                        break;
-
-                    case 'faceDetection':
-                        /**
-                        * to send images to cloud compute engine
-                        */
-                        var requestObj = request.post(config.cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
-                            if (err) {
-                                return console.error('Failed to connect to compute engine:', err);
-                            }
-                            console.log('Upload successful!  Compute engine respond : ', body);
-                        });
-                        var form = requestObj.form();
-                        form.append('areaOfInterest', JSON.stringify(bboxes));
-                        form.append('targetUrl', config.cloudServiceTargetUrl);
-                        form.append('timestamp', timestamp);
-                        form.append('file',
-                            fs.createReadStream(imageFullPath).on('end', function () {
-                                console.log("***File sent to compute engine***");
+                            request(options, function (error, body, response) {
+                                if (error) {
+                                    console.log("ERROR in posting image::" + error);
+                                }
+                                else
+                                    console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
                             })
-                        );
-                        break;
-                    default:
-                        console.log("Warning : Default Case executed (feature specified not served)!");
-                }
-
-                /**
-                * send newly added image to web backend
-                */
-                var imgJsonBody = {
-                    imgName: imageName,
-                    imgBase64: base64Raw
-                };
-                var options = {
-                    url: config.sendLiveStreamUploadURL,
-                    method: 'POST',
-                    json: imgJsonBody
-                }
-                request(options, function (error, body, response) {
-                    if (error) {
-                        console.log("ERROR in posting image::" + error);
-                    }
-                    else
-                        console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
-                });
-            }
-            countframe = countframe + 1;
-        });
+                        }
+                        countframe= countframe+1;
+  
 
     }, 1000 / interval);
 

@@ -200,15 +200,19 @@ app.get('/', function (req, res) {
 })
 
 app.post('/sendImage', function (req, res) {
+	console.log("Req ali :");
     if (!req.files)
         return res.status(400).send('No files were uploaded.');
     let sampleFile = req.files.file;
     console.log("File received with name :: ", req.files.file.name);
     var imageName = req.files.file.name;
-    var imageType = JSON.parse(req.body.flag);
-    var camId = JSON.parse(req.body.camId);
 
-    console.log("IMAGE TYPE ::", imageType);
+    console.log("IMAGE TYPE ::", req.body.camId);
+
+    var imageType = req.body.flag;
+    var camId = req.body.camId;
+
+    
     sampleFile.mv(config.imageDirectory + '/' + imageName, function (err) {
         if (err) {
             return res.status(500).send(err);
@@ -218,7 +222,7 @@ app.post('/sendImage', function (req, res) {
         res.send({ 'result': 'File accepted !' });
         if(imageType==="false")
         {
-	    sendImages(imageName, config.imageDirectory + '/' + imageName);
+	        sendImages(imageName, config.imageDirectory + '/' + imageName);
             rsyncInterval(0, imageName, config.imageDirectory + '/' + imageName,camId);
             
         }
@@ -235,12 +239,18 @@ var deWrapImage = function (imageName,camId, callback) {
     var sourcePath = config.imageDirectory + '/' + imageName;
 
     var targetPath = [];
-    targetPath.push('1_' + imageName);
-    targetPath.push('2_' + imageName);
-    targetPath.push('3_' + imageName);
-    targetPath.push('4_' + imageName);
-
-    console.log("STARTING DEWARP for ::",imageName);
+    var imageNameArray = imageName.split(".");
+    imageNameArray.push(imageNameArray[imageNameArray.length -1]);
+	
+    imageNameArray[imageNameArray.length -2] = "_1.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_2.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_3.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_4.";
+    targetPath.push(imageNameArray.join(""));
+    console.log("Renamed Images are  ::",targetPath);
 
     // console.log('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
     ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
@@ -274,9 +284,10 @@ var deWrapImage = function (imageName,camId, callback) {
 }
 
 var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
-    if (!fs.existsSync('./360.jpg')) {
-        fs.createReadStream(imgPath).pipe(fs.createWriteStream('360.jpg'));
-    }
+	console.log("******************** :"+'./'+camId+'.jpg');
+    //if (!fs.existsSync('./'+camId+'.jpg')) {
+        fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId+'.jpg'));
+    //}
 
     console.log("CAMERA ID  ::", camId);
     console.log("RSYNC TRGT ::", config.jetsonFolderPath);
@@ -412,11 +423,12 @@ var getRawImage = function (message, callback) {
     if (parsedJson.deviceType !== "Mobile") {
         try {
             //open the stream
-            const vCap = new cv.VideoCapture(streamingUrl);
+            var vCap = new cv.VideoCapture(streamingUrl);
             if (vCap != null) {
                 console.log("*Opened the stream :", streamingUrl);
 
-                vCap.readAsync((err, frame) => {
+                var frame=vCap.read();
+		console.log("in readAsync");
                     var raw = frame;
                     var rawImgName = "./" + camId + ".jpg";
                     //write image to local FS
@@ -435,25 +447,33 @@ var getRawImage = function (message, callback) {
                     var rawJsonBodyString = JSON.stringify(rawJsonBody);
                     client.publish('rawMQTT', rawJsonBodyString);
                     callback(null);
-                });
+                //});
                 vCap.release();
             }
+	    else
+            {console.log("Not opening the stream");	}
         }
         catch (err) {
             console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
             callback(err);
         }
-    } else {
-        var base64Raw = base64_encode("./360.jpg");
-        base64Raw = "data:image/jpg;base64, " + base64Raw;
-        //Syncvar 
-        rawJsonBody = {
-            userId: parsedJson.userId,
-            imgName: "360.jpg",
-            imgBase64: base64Raw
-        };
-        var rawJsonBodyString = JSON.stringify(rawJsonBody);
-        client.publish('rawMQTT', rawJsonBodyString);
+    } else 
+    {
+	console.log("Sending mobile raw");
+	var imageName = "./"+camId+".jpg";
+	if (fs.existsSync(imageName)) {
+		var base64Raw = base64_encode(imageName);
+		base64Raw = "data:image/jpg;base64, " + base64Raw;
+		//Syncvar 
+		rawJsonBody = {
+		    userId: parsedJson.userId,
+		    imgName: imageName,
+		    imgBase64: base64Raw
+		};
+		var rawJsonBodyString = JSON.stringify(rawJsonBody);
+		client.publish('rawMQTT', rawJsonBodyString);
+	}
+        
         callback(null);
     }
 }

@@ -212,19 +212,18 @@ app.post('/sendImage', function (req, res) {
     var imageType = req.body.flag;
     var camId = req.body.camId;
 
-    
     sampleFile.mv(config.imageDirectory + '/' + imageName, function (err) {
         if (err) {
             return res.status(500).send(err);
         }
         var timestamp = new Date();
-        console.log("\n\n       {{{{{{{IMAGE CAME AT}}}}}} ::", timestamp);
+        console.log("\n\n       {{{{{{{%%%  MOBILE CAMERA IMAGE CAME AT %%%}}}}}}}}} ::", timestamp);
         res.send({ 'result': 'File accepted !' });
+
         if(imageType==="false")
         {
 	        sendImages(imageName, config.imageDirectory + '/' + imageName);
             rsyncInterval(0, imageName, config.imageDirectory + '/' + imageName,camId);
-            
         }
         else
         {  
@@ -250,9 +249,8 @@ var deWrapImage = function (imageName,camId, callback) {
     targetPath.push(imageNameArray.join(""));
     imageNameArray[imageNameArray.length -2] = "_4.";
     targetPath.push(imageNameArray.join(""));
-    console.log("Renamed Images are  ::",targetPath);
+    //console.log("Renamed Images are  ::",targetPath);
 
-    // console.log('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
     ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
         function (err, stdout, stderr) {
             console.log("-----------------------------ONE DWARP\n\n");
@@ -290,7 +288,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
     //}
 
     console.log("CAMERA ID  ::", camId);
-    console.log("RSYNC TRGT ::", config.jetsonFolderPath);
+    //console.log("RSYNC TARGET ::", config.jetsonFolderPath);
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')

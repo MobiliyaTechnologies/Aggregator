@@ -224,7 +224,7 @@ app.post('/sendImage', function (req, res) {
         if(imageType==="false")
         {
             console.log("No need to DEWARP  ***");
-	        //sendImages(imageName, config.imageDirectory + '/' + imageName);
+	        sendImages(imageName, config.imageDirectory + '/' + imageName);
             rsyncInterval(0, imageName, config.imageDirectory + '/' + imageName,camId);
         }
         else
@@ -290,7 +290,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
     //}
 
     //console.log("CAMERA ID  ::", camId);
-    //console.log("RSYNC TARGET ::", config.jetsonFolderPath);
+    console.log("RSYNC TARGET ::", config.jetsonFolderPath+camId);
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')

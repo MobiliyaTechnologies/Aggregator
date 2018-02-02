@@ -144,8 +144,8 @@ client.on('message', function (topic, message) {
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
                 if (parsedJson.deviceType !== "Mobile") {
-                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
-                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
+                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
+                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig);
                         console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                     });
                 }
@@ -524,7 +524,7 @@ var cameraUrls = function (rtspArray, callback) {
 * @param {*[string]} bboxes 
 * @param {*string} cameraFolder local folderpath to stream
 */
-var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
@@ -610,9 +610,11 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                         console.log('Upload successful!  Compute engine respond : ', body);
                                     });
                                     var form = requestObj.form();
+                                    console.log("IMG config : ",imageConfig);
                                     form.append('areaOfInterest', JSON.stringify(bboxes));
                                     form.append('targetUrl', config.cloudServiceTargetUrl);
                                     form.append('timestamp', timestamp);
+                                    form.append('imageConfig', JSON.stringify(imageConfig));
                                     form.append('file',
                                         fs.createReadStream(imageFullPath).on('end', function () {
                                             console.log("***File sent to compute engine***");
@@ -671,8 +673,12 @@ var boundingBox = function (message, callback) {
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
-    //var jetsonFolderPath = parsedJson.jetsonFolderPath;
-
+    var imageConfig = {
+        frameWidth : parsedJson.frameWidth.width,
+        frameHeight : parsedJson.frameWidth.height,
+        ImageWidth : parsedJson.imageWidth,
+        ImageHeight : parsedJson.imageHeight
+    };
     //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
@@ -680,11 +686,11 @@ var boundingBox = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("cameraId directory created successfully!");
-                callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+                callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
             }
         });
     } else
-        callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+        callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
 };
 
 /**

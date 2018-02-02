@@ -200,14 +200,14 @@ app.get('/', function (req, res) {
 })
 
 app.post('/sendImage', function (req, res) {
-	console.log("Req ali :");
+	//console.log("Req ali :");
     if (!req.files)
         return res.status(400).send('No files were uploaded.');
     let sampleFile = req.files.file;
     console.log("File received with name :: ", req.files.file.name);
     var imageName = req.files.file.name;
-
-    console.log("IMAGE TYPE ::", req.body.camId);
+    console.log("_____________________________________________________________________");
+    console.log("IMAGE TYPE ::", req.body.flag);
 
     var imageType = req.body.flag;
     var camId = req.body.camId;
@@ -217,12 +217,14 @@ app.post('/sendImage', function (req, res) {
             return res.status(500).send(err);
         }
         var timestamp = new Date();
-        console.log("\n\n       {{{{{{{%%%  MOBILE CAMERA IMAGE CAME AT %%%}}}}}}}}} ::", timestamp);
+        console.log("\n\n       {{{{{{{%%%  MOBILE CAMERA IMAGE CAME AT %%%}}}}}}}}} ::"+ timestamp+" NAME :::"+imageName);
         res.send({ 'result': 'File accepted !' });
 
+        //fs.createReadStream(config.imageDirectory + '/' + imageName).pipe(fs.createWriteStream(camId+'.jpg'));
         if(imageType==="false")
         {
-	        sendImages(imageName, config.imageDirectory + '/' + imageName);
+            console.log("No need to DEWARP  ***");
+	        //sendImages(imageName, config.imageDirectory + '/' + imageName);
             rsyncInterval(0, imageName, config.imageDirectory + '/' + imageName,camId);
         }
         else
@@ -251,43 +253,43 @@ var deWrapImage = function (imageName,camId, callback) {
     targetPath.push(imageNameArray.join(""));
     //console.log("Renamed Images are  ::",targetPath);
 
-    ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
+    ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
         function (err, stdout, stderr) {
-            console.log("-----------------------------ONE DWARP\n\n");
+            console.log("-----------------------------ONE DWARP at "+new Date()+" of IMAGE ::"+targetPath[0]);
             rsyncInterval(0, targetPath[0], config.imageTargetDirectory + '/' + targetPath[0],camId);
             sendImages(targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
         });
 
-    ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[1],
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[1],
         function (err, stdout, stderr) {
-            console.log("-----------------------------TWO DWARP\n\n");
-            rsyncInterval(2000, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1],camId);
+            console.log("-----------------------------TWO DWARP",new Date()+" of IMAGE ::"+targetPath[1]);
+            rsyncInterval(3000, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1],camId);
             sendImages(targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
         });
 
-    ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[2],
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[2],
         function (err, stdout, stderr) {
-            console.log("-----------------------------THREE DWARP\n\n");
-            rsyncInterval(4000, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2],camId);
+            console.log("-----------------------------THREE DWARP at ",new Date()+" of IMAGE ::"+targetPath[2]);
+            rsyncInterval(6000, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2],camId);
             sendImages(targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
         });
 
-    ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 420x420 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[3],
+    ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[3],
         function (err, stdout, stderr) {
-            console.log("-----------------------------FOUR DWARP\n\n");
-            rsyncInterval(6000, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3],camId);
+            console.log("-----------------------------FOUR DWARP at ",new Date()+" of IMAGE ::"+targetPath[3]);
+            rsyncInterval(9000, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3],camId);
             sendImages(targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
         });
     callback(null);
 }
 
 var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
-	console.log("******************** :"+'./'+camId+'.jpg');
+	//console.log("******************** :"+'./'+camId+'.jpg');
     //if (!fs.existsSync('./'+camId+'.jpg')) {
         fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId+'.jpg'));
     //}
 
-    console.log("CAMERA ID  ::", camId);
+    //console.log("CAMERA ID  ::", camId);
     //console.log("RSYNC TARGET ::", config.jetsonFolderPath);
     var rsync = new Rsync()
         .shell('ssh')
@@ -298,8 +300,8 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
     setTimeout(function () {
         var count = 0;
         var timestamp = new Date();
-        console.log("\n\nPATH______________________",imgPath);
-        console.log("\n\nCalled to Rysnc ::", timestamp);
+        //console.log("\n\n   RSYNC PATH______________________",imgPath);
+        //console.log("\n\n   Called to Rysnc ::", timestamp);
 
         if (count === 4) {
             clearInterval(rsyncInterval);
@@ -309,8 +311,10 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
             if (error)
                 console.log("Error in rsync ::", error);
             else {
-                fs.unlinkSync(imgPath);
-                console.log("Rsync done !");
+                //fs.unlinkSync(imgPath);
+                //console.log("       DEWARP IMAGE ::",imgPath);
+                console.log("       Rsync done ! AT :::" + new Date()+ " IMAGE NAME ::" + imgPath);
+                console.log("-----------------------------------------------------------------------");
             }
         });
 
@@ -329,6 +333,7 @@ var sendImages = function (imgName, imgPath) {
     };
 
     var options = {
+        rejectUnauthorized: false,
         url: config.sendLiveStreamUploadURL,
         method: 'POST',
         json: imgJsonBody
@@ -340,7 +345,7 @@ var sendImages = function (imgName, imgPath) {
         }
         else {
             // fs.unlinkSync(imgPath);
-            console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+            //console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode)+" AT " +new Date() );
         }
     });
 }
@@ -442,6 +447,8 @@ var getRawImage = function (message, callback) {
                         imgBase64: base64Raw
                     };
                     //MQTT APPROACH
+                    //console.log(rawJsonBody);
+
                     var rawJsonBodyString = JSON.stringify(rawJsonBody);
                     client.publish('rawMQTT', rawJsonBodyString);
                     callback(null);
@@ -467,10 +474,15 @@ var getRawImage = function (message, callback) {
 		    userId: parsedJson.userId,
 		    imgName: imageName,
 		    imgBase64: base64Raw
-		};
+        };
+        //console.log(rawJsonBody);
 		var rawJsonBodyString = JSON.stringify(rawJsonBody);
 		client.publish('rawMQTT', rawJsonBodyString);
-	}
+    }
+    else
+    {
+        console.log("No previous Image found!");
+    }
         
         callback(null);
     }
@@ -659,6 +671,7 @@ var boundingBox = function (message, callback) {
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
+    //var jetsonFolderPath = parsedJson.jetsonFolderPath;
 
     //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
@@ -703,4 +716,9 @@ app.get('/cameras/live', function (req, res) {
         result.push(cam.camId);
     });
     res.send(result);
+});
+
+app.get('/_ping', function (req, res) {
+
+    res.send("PONG");
 });

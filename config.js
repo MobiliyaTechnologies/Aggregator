@@ -3,10 +3,10 @@
  */
 var config = {};
 
-config.port = 3006;
+config.port = 3001;
 config.imageDirectory='./Images360';
 config.imageTargetDirectory = './Images360Target';
-config.aggregatorName = "Aggregator 02";
+config.aggregatorName = "Aggregator 10";
 config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
@@ -16,10 +16,10 @@ config.availability = "yes";
  * mqttBroker : Aggregator and WebApp communication
  */
 //config.mqttBroker = "mqtt://52.177.169.81:1887";
-config.mqttBroker = "mqtt://10.9.44.101:1889";
+config.mqttBroker = "mqtt://52.177.169.81:1880";
 
 //config.host = "http://52.177.169.81:5008";
-config.host = "http://10.9.42.211:5009";
+config.host = "https://snsbackend.mobiliya.com:5009";
 
 config.cloudComputeEngine = "http://52.177.169.81:5003";
 
@@ -28,8 +28,8 @@ config.registerAggregator = config.host + "/devices/aggregators";
  * Target jetson path
  */
 // config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-config.jetsonFolderPath = "nvidia@10.9.43.75:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam";
-// config.jetsonFolderPath = "nvidia@10.9.43.74:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam";
+// config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/Compute-Engine-Yolo/darknet/Cameras/Cam";
+config.jetsonFolderPath = "nvidia@10.9.43.74:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam";
 /**
  * URL of VM to send images
  */

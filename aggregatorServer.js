@@ -311,6 +311,9 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
             if (error)
                 console.log("Error in rsync ::", error);
             else {
+                setTimeout(function () {
+                    fs.unlinkSync(imgPath);
+                },10000);
                 //fs.unlinkSync(imgPath);
                 //console.log("       DEWARP IMAGE ::",imgPath);
                 console.log("       Rsync done ! AT :::" + new Date()+ " IMAGE NAME ::" + imgPath);

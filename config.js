@@ -42,4 +42,3 @@ config.cloudServiceUrl = config.cloudComputeEngine + "/faces";
 config.cloudServiceTargetUrl = config.host + "/results";
 
 module.exports = config;
-

@@ -144,8 +144,8 @@ client.on('message', function (topic, message) {
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
                 if (parsedJson.deviceType !== "Mobile") {
-                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
-                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig);
+                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig,jetsonFolderPath) {
+                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig,jetsonFolderPath);
                         console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                     });
                 }
@@ -303,10 +303,10 @@ var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
         //console.log("\n\n   RSYNC PATH______________________",imgPath);
         //console.log("\n\n   Called to Rysnc ::", timestamp);
 
-        if (count === 4) {
-            clearInterval(rsyncInterval);
-            return;
-        }
+        //if (count === 4) {
+          //  clearInterval(rsyncInterval);
+            //return;
+        //}
         rsync.execute(function (error, code, cmd) {
             if (error)
                 console.log("Error in rsync ::", error);
@@ -450,7 +450,7 @@ var getRawImage = function (message, callback) {
                         imgBase64: base64Raw
                     };
                     //MQTT APPROACH
-                    //console.log(rawJsonBody);
+                    console.log(rawJsonBody);
 
                     var rawJsonBodyString = JSON.stringify(rawJsonBody);
                     client.publish('rawMQTT', rawJsonBodyString);
@@ -527,7 +527,7 @@ var cameraUrls = function (rtspArray, callback) {
 * @param {*[string]} bboxes 
 * @param {*string} cameraFolder local folderpath to stream
 */
-var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig, jetsonFolderPath) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
@@ -557,7 +557,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
         .shell('ssh')
         .flags('avz')
         .source(filePath)
-        .destination(config.jetsonFolderPath + camId);
+        .destination(jetsonFolderPath + camId);
     console.log("*Sending frames now!!\n``````````````````````````````````\n");
     var countframe = 0;
     /**
@@ -594,7 +594,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                             console.log("Error in rsync ::", error);
                                         }
                                         else {
-                                            console.log("Rsync done !");
+                                            console.log("Rsync done To jetson ::",jetsonFolderPath);
                                         }
                                         //deleting the sent file 
                                         console.log("IMG path :: ",imageFullPath);
@@ -675,6 +675,8 @@ var boundingBox = function (message, callback) {
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
+    var jetsonFolderPath = parsedJson.jetsonCamFolderLocation;
+    console.log("JETSON FOLDER PATH ",parsedJson);
     var detectionType = parsedJson.feature;
     var imageConfig = {
         frameWidth : parsedJson.frameWidth.width,
@@ -689,11 +691,11 @@ var boundingBox = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("cameraId directory created successfully!");
-                callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
+                callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig, jetsonFolderPath);
             }
         });
     } else
-        callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
+        callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig, jetsonFolderPath);
 };
 
 /**

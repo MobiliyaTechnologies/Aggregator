@@ -29,11 +29,16 @@ var port = config.port;
 app.listen(port, function () {
     console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
 });
+//Connect MQTT Broker
+var MQTTBroker = config.mqttBroker;
+var client = mqtt.connect(MQTTBroker);
+
+var checkCameraTopic,getRawImageTopic,cameraUrlsTopic,stopCameraTopic,startStreamingTopic;
 
 //ping mechanism
 serial.getSerial(function (err, value) {
     //Aggregator information 
-    var aggregatorData = { "aggregatorName" : config.aggregatorName, 
+    var aggregatorData = { "name" : config.aggregatorName, 
                             "url": config.url, 
                             "macId" : value, "ipAddress": ip.address(),
                             "availability": config.availability, 
@@ -41,6 +46,7 @@ serial.getSerial(function (err, value) {
                             "channelId" : config.channelId 
                         };
     var options = {
+        rejectUnauthorized: false,
         url: config.registerAggregator,
         method: 'POST',
         json: aggregatorData
@@ -50,8 +56,18 @@ serial.getSerial(function (err, value) {
             console.log("Error Registering the Aggregator");
         } else {
             console.log("\n	DeviceId : " + response.body._id); 
-            //aggregatorId = response.body._id;
-            aggregatorId = "";
+            aggregatorId = response.body._id;
+            // aggregatorId = "";
+            checkCameraTopic = 'checkCamera/'+aggregatorId;
+            getRawImageTopic = 'getRawImage/'+aggregatorId;
+            cameraUrlsTopic = 'cameraUrls';
+            stopCameraTopic = 'stopCamera/'+aggregatorId;
+            startStreamingTopic = 'startStreaming/'+aggregatorId;
+            client.subscribe(checkCameraTopic);
+            client.subscribe(getRawImageTopic);
+            client.subscribe(cameraUrlsTopic);
+            client.subscribe(stopCameraTopic);
+            client.subscribe(startStreamingTopic);
             console.log("Success in Registering Aggregator !");
         }
     });
@@ -60,26 +76,13 @@ serial.getSerial(function (err, value) {
 //to keep track of live cameras
 var liveCamIntervalArray = [];
 
-//Connect MQTT Broker
-var MQTTBroker = config.mqttBroker;
-var client = mqtt.connect(MQTTBroker);
-aggregatorId ="";
-var checkCameraTopic = 'checkCamera'+aggregatorId;
-var getRawImageTopic = 'getRawImage'+aggregatorId;
-var cameraUrlsTopic = 'cameraUrls'+aggregatorId;
-var stopCameraTopic = 'stopCamera'+aggregatorId;
-var startStreamingTopic = 'startStreaming'+aggregatorId;
 
 //Subscriptions: number_of_topics:5
 client.on('connect', function () {
     console.log("**BROKER STATUS :: \n	MQTT broker connected!\n-----------------------------------\n");
     client.subscribe('/');
-    client.subscribe(checkCameraTopic);
-    client.subscribe(getRawImageTopic);
-    client.subscribe(cameraUrlsTopic);
-    client.subscribe(stopCameraTopic);
-    client.subscribe(startStreamingTopic);
 });
+
 /*
 client.on('reconnect', function () {
     console.log("\n**BROKER STATUS :: \n  Trying to  reconnect MQTT broker!\n-----------------------------------\n");
@@ -140,9 +143,9 @@ client.on('message', function (topic, message) {
                 var parsedJson = parseJson(sendData);
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
-                if (parsedJson.deviceName !== '360') {
-                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
-                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder);
+                if (parsedJson.deviceType !== "Mobile") {
+                    boundingBox(sendData, function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
+                        startLiveStreaming(camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig);
                         console.log("MQTT==================boundingBox Done!!\n-----------------------------------\n");
                     });
                 }
@@ -182,213 +185,158 @@ if (!fs.existsSync(config.camFolder)) {
 
 //________________________Functions________________________
 
-if (!fs.existsSync(config.imageDirectory)) 
-{
-  mkdirp(config.imageDirectory, function(err)
-  {
-    if (err) 
-    {
-        return console.error(err);
-    }  
-    console.log("Directory created successfully! ");
+if (!fs.existsSync(config.imageDirectory)) {
+    mkdirp(config.imageDirectory, function (err) {
+        if (err) {
+            return console.error(err);
+        }
+        console.log("Directory created successfully! ");
     });
 }
 
-app.get('/',function(req,res){
+app.get('/', function (req, res) {
     console.log("Hello");
     res.send("Aggregator alive");
 })
 
-app.post('/sendImage',function(req, res) {
+app.post('/sendImage', function (req, res) {
+	//console.log("Req ali :");
     if (!req.files)
-      return res.status(400).send('No files were uploaded.');
+        return res.status(400).send('No files were uploaded.');
     let sampleFile = req.files.file;
-    console.log("File received with name :: ",req.files.file.name);
+    console.log("File received with name :: ", req.files.file.name);
     var imageName = req.files.file.name;
-    // var imageType = JSON.parse(req.body.flag)
+    console.log("_____________________________________________________________________");
+    console.log("IMAGE TYPE ::", req.body.flag);
 
-    // console.log("IMAGE TYPE ::",imageType);
-    sampleFile.mv(config.imageDirectory +'/'+ imageName, function(err) 
-    {
-      if (err)
-      {
-        return res.status(500).send(err);
-      }
-      res.send({'result': 'File accepted !'});
-      
-      deWrapImage(imageName,function(error){
-          console.log("Done with Rsync");
-      });
+    var imageType = req.body.flag;
+    var camId = req.body.camId;
+
+    sampleFile.mv(config.imageDirectory + '/' + imageName, function (err) {
+        if (err) {
+            return res.status(500).send(err);
+        }
+        var timestamp = new Date();
+        console.log("\n\n       {{{{{{{%%%  MOBILE CAMERA IMAGE CAME AT %%%}}}}}}}}} ::"+ timestamp+" NAME :::"+imageName);
+        res.send({ 'result': 'File accepted !' });
+
+        //fs.createReadStream(config.imageDirectory + '/' + imageName).pipe(fs.createWriteStream(camId+'.jpg'));
+        if(imageType==="false")
+        {
+            console.log("No need to DEWARP  ***");
+	        sendImages(imageName, config.imageDirectory + '/' + imageName);
+            rsyncInterval(0, imageName, config.imageDirectory + '/' + imageName,camId);
+        }
+        else
+        {  
+            deWrapImage(imageName,camId, function (error) {
+                console.log("\n\n");
+            });
+        }
     });
-
 });
 
-var deWrapImage = function(imageName,callback)
-{
-    var sourcePath = config.imageDirectory +'/'+imageName;
-    var targetPath1 = config.imageTargetDirectory +'/1_'+imageName;
-    var targetPath2 = config.imageTargetDirectory +'/2_'+imageName;
-    var targetPath3 = config.imageTargetDirectory +'/3_'+imageName;
-    var targetPath4 = config.imageTargetDirectory +'/4_'+imageName;
+var deWrapImage = function (imageName,camId, callback) {
+    var sourcePath = config.imageDirectory + '/' + imageName;
 
-    // console.log('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
+    var targetPath = [];
+    var imageNameArray = imageName.split(".");
+    imageNameArray.push(imageNameArray[imageNameArray.length -1]);
+	
+    imageNameArray[imageNameArray.length -2] = "_1.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_2.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_3.";
+    targetPath.push(imageNameArray.join(""));
+    imageNameArray[imageNameArray.length -2] = "_4.";
+    targetPath.push(imageNameArray.join(""));
+    //console.log("Renamed Images are  ::",targetPath);
 
+    ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[0],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------ONE DWARP at "+new Date()+" of IMAGE ::"+targetPath[0]);
+            rsyncInterval(0, targetPath[0], config.imageTargetDirectory + '/' + targetPath[0],camId);
+            sendImages(targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
+        });
 
-var rsync = new Rsync()
-.shell('ssh')
-.flags('avz')
-.source(config.imageTargetDirectory+'/')
-.destination(config.jetsonFolderPath);
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[1],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------TWO DWARP",new Date()+" of IMAGE ::"+targetPath[1]);
+            rsyncInterval(3000, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1],camId);
+            sendImages(targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
+        });
 
+    ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[2],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------THREE DWARP at ",new Date()+" of IMAGE ::"+targetPath[2]);
+            rsyncInterval(6000, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2],camId);
+            sendImages(targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
+        });
 
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 420x420 '+sourcePath+' '+targetPath2);
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 420x420 '+sourcePath+' '+targetPath3);
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 420x420 '+sourcePath+' '+targetPath4);
+    ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 320x320 ' + sourcePath + ' ' + config.imageTargetDirectory + '/' + targetPath[3],
+        function (err, stdout, stderr) {
+            console.log("-----------------------------FOUR DWARP at ",new Date()+" of IMAGE ::"+targetPath[3]);
+            rsyncInterval(9000, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3],camId);
+            sendImages(targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
+        });
+    callback(null);
+}
 
-    // var rsyncInterval = setInterval(function(){
-    //     if(count ===4){
-    //         clearInterval(rsyncInterval);
-    //         return;
-    
+var rsyncInterval = function (timeInterval, imgName, imgPath,camId) {
+	//console.log("******************** :"+'./'+camId+'.jpg');
+    //if (!fs.existsSync('./'+camId+'.jpg')) {
+        fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId+'.jpg'));
+    //}
 
-    //     ls = exec(commands[count], function(err,stdout,stderr){
-    //         if(err)
-    //             console.log("Error :",err);
-    //         if(stderr)
-    //             console.log("stderr :",stderr);
-    //         console.log("stdout :",stdout); 
-    //         rsync.execute(function (error, code, cmd) {
-    //             if (error)
-    //                 console.log("Error in rsync ::", error);
-    //             else{
-    //                 console.log("Rsync done !");
-    //                 var countTarget = count+1;
-    //                 sendImages("1_"+imageName,targetPath+countTarget);
-    //                 // fs.unlinkSync(targetPath1);
-    //             }
-    //         });
-    //         // fs.unlinkSync(targetPath1);
-    //     });
-    //     count += 1;
-    // },2000);
+    //console.log("CAMERA ID  ::", camId);
+    console.log("RSYNC TARGET ::", config.jetsonFolderPath+camId);
+    var rsync = new Rsync()
+        .shell('ssh')
+        .flags('avz')
+        .source(imgPath)
+        .destination(config.jetsonFolderPath+camId);
 
+    setTimeout(function () {
+        var count = 0;
+        var timestamp = new Date();
+        //console.log("\n\n   RSYNC PATH______________________",imgPath);
+        //console.log("\n\n   Called to Rysnc ::", timestamp);
 
-
-    // var commands=[],count=0;
-    // commands.push('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1);
-    // commands.push('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 420x420 '+sourcePath+' '+targetPath2);
-    // commands.push('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 420x420 '+sourcePath+' '+targetPath3);
-    // commands.push('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 420x420 '+sourcePath+' '+targetPath4);
-
-    // var rsyncInterval = setInterval(function(){
-    //     if(count ===4){
-    //         clearInterval(rsyncInterval);
-    //         return;
-    //     }
-    //     ls = exec(commands[count], function(err,stdout,stderr){
-    //         if(err)
-    //             console.log("Error :",err);
-    //         if(stderr)
-    //             console.log("stderr :",stderr);
-    //         console.log("stdout :",stdout); 
-    //         rsync.execute(function (error, code, cmd) {
-    //             if (error)
-    //                 console.log("Error in rsync ::", error);
-    //             else{
-    //                 console.log("Rsync done !");
-    //                 var countTarget = count+1;
-    //                 sendImages("1_"+imageName,targetPath+countTarget);
-    //                 // fs.unlinkSync(targetPath1);
-    //             }
-    //         });
-    //         // fs.unlinkSync(targetPath1);
-    //     });
-    //     count += 1;
-    // },2000);
-
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 248,518 -r 420 420x420 '+sourcePath+' '+targetPath1 , function(err,stdout,stderr){
-    //     if(err)
-    //         console.log("Error :",err);
-    //     if(stderr)
-    //         console.log("stderr :",stderr);
-    //     console.log("stdout :",stdout); 
-    //     rsync.execute(function (error, code, cmd) {
-    //         if (error)
-    //             console.log("Error in rsync ::", error);
-    //         else{
-    //             console.log("Rsync done !");
-    //             sendImages("1_"+imageName,targetPath1);
-    //             // fs.unlinkSync(targetPath1);
-    //         }
-    //     });
-    //     // fs.unlinkSync(targetPath1);
-    // });
-    ls = exec('./fisheye -o 120 -c 521,518 -l 521,248 -r 420 420x420 '+sourcePath+' '+targetPath2 , function(err,stdout,stderr){
-        if(err)
-            console.log("Error :",err);
-        if(stderr)
-            console.log("stderr :",stderr);
-        console.log("stdout :",stdout); 
+        //if (count === 4) {
+          //  clearInterval(rsyncInterval);
+            //return;
+        //}
         rsync.execute(function (error, code, cmd) {
             if (error)
                 console.log("Error in rsync ::", error);
-            else{
-                console.log("Rsync done !");
-                sendImages("2_"+imageName,targetPath2);
-                // fs.unlinkSync(targetPath2);
+            else {
+                setTimeout(function () {
+                    fs.unlinkSync(imgPath);
+                },10000);
+                //fs.unlinkSync(imgPath);
+                //console.log("       DEWARP IMAGE ::",imgPath);
+                console.log("       Rsync done ! AT :::" + new Date()+ " IMAGE NAME ::" + imgPath);
+                console.log("-----------------------------------------------------------------------");
             }
         });
-        // fs.unlinkSync(targetPath2);
-    });
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 521,766 -r 420 420x420 '+sourcePath+' '+targetPath3 , function(err,stdout,stderr){
-    //     if(err)
-    //         console.log("Error :",err);
-    //     if(stderr)
-    //         console.log("stderr :",stderr);
-    //     console.log("stdout :",stdout); 
-    //     rsync.execute(function (error, code, cmd) {
-    //         if (error)
-    //             console.log("Error in rsync ::", error);
-    //         else{
-    //             console.log("Rsync done !");
-    //             sendImages("3_"+imageName,targetPath3);
-    //             // fs.unlinkSync(targetPath3);
-    //         }
-    //     });
-    //     // fs.unlinkSync(targetPath3);
-    // });
-    // ls = exec('./fisheye -o 120 -c 521,518 -l 766,500 -r 440 420x420 '+sourcePath+' '+targetPath4 , function(err,stdout,stderr){
-    //     if(err)
-    //         console.log("Error :",err);
-    //     if(stderr)
-    //         console.log("stderr :",stderr);
-    //     console.log("stdout :",stdout); 
-    //     rsync.execute(function (error, code, cmd) {
-    //         if (error)
-    //             console.log("Error in rsync ::", error);
-    //         else{
-    //             console.log("Rsync done !");
-    //             sendImages("4_"+imageName,targetPath4);
-    //             // fs.unlinkSync(targetPath4);
-    //         }
-    //     });
-    //     // fs.unlinkSync(targetPath4);
-    // });
+
+        count = count + 1;
+    }, timeInterval);
 }
+var sendImages = function (imgName, imgPath) {
 
-var sendImages = function(imgName, imgPath){
-
-    console.log("Img name : "+ imgName + " Img Path :"+ imgPath);
+    console.log("Img name : " + imgName + " Img Path :" + imgPath);
     var base64Img = base64_encode(imgPath);
     base64Img = "data:image/jpg;base64, " + base64Img;
-    console.log("IMG ::: ",base64Img);
+    // console.log("IMG ::: ", base64Img);
     var imgJsonBody = {
         imgName: imgName,
         imgBase64: base64Img
     };
 
     var options = {
+        rejectUnauthorized: false,
         url: config.sendLiveStreamUploadURL,
         method: 'POST',
         json: imgJsonBody
@@ -398,9 +346,9 @@ var sendImages = function(imgName, imgPath){
         if (error) {
             console.log("ERROR in posting image::" + error);
         }
-        else{
-            fs.unlinkSync(imgPath);
-            console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+        else {
+            // fs.unlinkSync(imgPath);
+            //console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode)+" AT " +new Date() );
         }
     });
 }
@@ -413,20 +361,21 @@ var sendImages = function(imgName, imgPath){
 var checkCamera = function (message, callback) {
     console.log("CALL -checkCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    
+
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
     var deviceType = parsedJson.deviceType;
     console.log("DEVICE URL to test::", streamingUrl);
 
-    if (deviceType != 'Mobile'){
+    if (deviceType != 'Mobile') {
         try {
             const vCap = new cv.VideoCapture(streamingUrl);
             if (vCap !== null) {
                 console.log("Camera device can stream!");
                 var deviceResult = {
-                    // "userId": parsedJson.userId, 
-                    "camdetails": parsedJson, "flag": 1 };
+                    "userId": parsedJson.userId, 
+                    "camdetails": parsedJson, "flag": 1
+                };
                 vCap.release();
             }
         }
@@ -434,21 +383,23 @@ var checkCamera = function (message, callback) {
         catch (err) {
             console.log(err);
             var deviceResult = {
-                // "userId": parsedJson.userId, 
-                "camdetails": parsedJson, "flag": 0 };
+                 "userId": parsedJson.userId, 
+                "camdetails": parsedJson, "flag": 0
+            };
         }
     }
-     
-    else{
-            var deviceResult = {
-            // "userId": parsedJson.userId, 
-            "camdetails": parsedJson, "flag": 1 };
-        }
+
+    else {
+        var deviceResult = {
+            "userId": parsedJson.userId, 
+            "camdetails": parsedJson, "flag": 1
+        };
+    }
     var strdeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strdeviceResult);
     client.publish('checkCameraResponse', strdeviceResult);
     callback(null);
-   
+
 }
 
 /**
@@ -469,67 +420,74 @@ var base64_encode = function (file) {
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     parsedJson = parseJson(message);
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~",parsedJson);
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~", parsedJson);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
 
-    try {
-        //open the stream
-        const vCap = new cv.VideoCapture(streamingUrl);
-        if (vCap != null) {
-            console.log("*Opened the stream :", streamingUrl);
+    if (parsedJson.deviceType !== "Mobile") {
+        try {
+            //open the stream
+            var vCap = new cv.VideoCapture(streamingUrl);
+            if (vCap != null) {
+                console.log("*Opened the stream :", streamingUrl);
 
-            vCap.readAsync((err, frame) => {
-                var raw = frame;
-                var rawImgName = "./" + camId + ".jpg";
-                //write image to local FS
-                cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-                //convert to base64
-                var base64Raw = base64_encode(rawImgName);
-                base64Raw = "data:image/jpg;base64, " + base64Raw;
-                
-                //Sync          
-                var rawJsonBody = {
-                    // userId: parsedJson.userId,
-                    imgName: rawImgName,
-                    imgBase64: base64Raw
-                };
-                //MQTT APPROACH
-                var rawJsonBodyString = JSON.stringify(rawJsonBody);
-                client.publish('rawMQTT', rawJsonBodyString);
-                callback(null);
-            });
-            vCap.release();
-            
-            //HTTP
-            /*
-            var options = {
-            url: config.getRawImageUploadURL,
-            method: 'POST',
-            json: rawJsonBody
+                var frame=vCap.read();
+		console.log("in readAsync");
+                    var raw = frame;
+                    var rawImgName = "./" + camId + ".jpg";
+                    //write image to local FS
+                    cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                    //convert to base64
+                    var base64Raw = base64_encode(rawImgName);
+                    base64Raw = "data:image/jpg;base64, " + base64Raw;
+
+                    //Sync          
+                    var rawJsonBody = {
+                        userId: parsedJson.userId,
+                        imgName: rawImgName,
+                        imgBase64: base64Raw
+                    };
+                    //MQTT APPROACH
+                    //console.log(rawJsonBody);
+
+                    var rawJsonBodyString = JSON.stringify(rawJsonBody);
+                    client.publish('rawMQTT', rawJsonBodyString);
+                    callback(null);
+                //});
+                vCap.release();
             }
-        
-            request(options,function(error, body, response){
-            console.log("ERROR ::" + error);
-            console.log("RESPONSE  :: " + response);
-            })
-        
-            .then(function(result){
-            console.log(result);
-            })
-            .catch(
-            function(err){
-            console.log(err);
-            }
-            )
-            */
+	    else
+            {console.log("Not opening the stream");	}
         }
+        catch (err) {
+            console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
+            callback(err);
+        }
+    } else 
+    {
+	console.log("Sending mobile raw");
+	var imageName = "./"+camId+".jpg";
+	if (fs.existsSync(imageName)) {
+		var base64Raw = base64_encode(imageName);
+		base64Raw = "data:image/jpg;base64, " + base64Raw;
+		//Syncvar 
+		rawJsonBody = {
+		    userId: parsedJson.userId,
+		    imgName: imageName,
+		    imgBase64: base64Raw
+        };
+        //console.log(rawJsonBody);
+		var rawJsonBodyString = JSON.stringify(rawJsonBody);
+		client.publish('rawMQTT', rawJsonBodyString);
     }
-    catch (err) {
-        console.log("Streaming Error in GetRawImage!\n\nURL ::", streamingUrl);
-        callback(err);
+    else
+    {
+        console.log("No previous Image found!");
+    }
+        
+        callback(null);
     }
 }
 
@@ -544,13 +502,13 @@ var cameraUrls = function (rtspArray, callback) {
     rtspArray.forEach(device => {
         try {
             //console.log("IN IT");
-            const vCap = new cv.VideoCapture(device.streamingUrl);
+            // const vCap = new cv.VideoCapture(device.streamingUrl);
 
-            if (vCap != null) {
+            // if (vCap != null) {
                 device.camStatus = 1;
-                vCap.release();
+                // vCap.release();
                 // device.userId = parsedJson.userId
-            }
+            // }
             // vCap.release();
         }
         catch (err) {
@@ -569,17 +527,17 @@ var cameraUrls = function (rtspArray, callback) {
 * @param {*[string]} bboxes 
 * @param {*string} cameraFolder local folderpath to stream
 */
-var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder) {
+var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, cameraFolder,imageConfig) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     //open the stream
     var vCap;
 
-    try{
-      vCap   = new cv.VideoCapture(streamingUrl);
-    }catch(error){
-        console.log("Error opening stream : ",error);
+    try {
+        vCap = new cv.VideoCapture(streamingUrl);
+    } catch (error) {
+        console.log("Error opening stream : ", error);
     }
     //fps:frames per second, interval: call to function in interval
     var fps = 25; // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
@@ -607,8 +565,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     */
     var camInterval = setInterval(function () {
         /**reading next frame */
-        //let frame = vCap.read();
-        vCap.readAsync((err, frame) => {
+        let frame = vCap.read();
+       
             if ( countframe%fps == 0) {
                 
                             //console.log("WRITTEN IMAGE at time :: ", new Date());
@@ -639,6 +597,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                             console.log("Rsync done !");
                                         }
                                         //deleting the sent file 
+                                        console.log("IMG path :: ",imageFullPath);
                                         fs.unlinkSync(imageFullPath);
                                     });
                                     break;
@@ -654,9 +613,11 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                         console.log('Upload successful!  Compute engine respond : ', body);
                                     });
                                     var form = requestObj.form();
+                                    console.log("IMG config : ",imageConfig);
                                     form.append('areaOfInterest', JSON.stringify(bboxes));
                                     form.append('targetUrl', config.cloudServiceTargetUrl);
                                     form.append('timestamp', timestamp);
+                                    form.append('imageConfig', JSON.stringify(imageConfig));
                                     form.append('file',
                                         fs.createReadStream(imageFullPath).on('end', function () {
                                             console.log("***File sent to compute engine***");
@@ -675,6 +636,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                 imgBase64: base64Raw
                             };
                             var options = {
+                                rejectUnauthorized: false,
                                 url: config.sendLiveStreamUploadURL,
                                 method: 'POST',
                                 json: imgJsonBody
@@ -685,10 +647,10 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
                                 }
                                 else
                                     console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
-                            });
+                            })
                         }
                         countframe= countframe+1;
-        });
+  
 
     }, 1000 / interval);
 
@@ -696,7 +658,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     liveCamIntervalArray.push({
         camId: camId,
         intervalObj: camInterval,
-        vCapObj : vCap
+        vCapObj: vCap
     });
 }
 
@@ -714,7 +676,12 @@ var boundingBox = function (message, callback) {
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
     var detectionType = parsedJson.feature;
-
+    var imageConfig = {
+        frameWidth : parsedJson.frameWidth.width,
+        frameHeight : parsedJson.frameWidth.height,
+        ImageWidth : parsedJson.imageWidth,
+        ImageHeight : parsedJson.imageHeight
+    };
     //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
@@ -722,11 +689,11 @@ var boundingBox = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("cameraId directory created successfully!");
-                callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+                callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
             }
         });
     } else
-        callback(camId, detectionType, streamingUrl, parsedJson.Coords, cameraFolder);
+        callback(camId, detectionType, streamingUrl, parsedJson.boundingBox, cameraFolder,imageConfig);
 };
 
 /**
@@ -758,4 +725,9 @@ app.get('/cameras/live', function (req, res) {
         result.push(cam.camId);
     });
     res.send(result);
+});
+
+app.get('/_ping', function (req, res) {
+
+    res.send("PONG");
 });

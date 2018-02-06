@@ -414,7 +414,7 @@ var base64_encode = function (file) {
 }
 
 /**
-* to get raw image of camera device
+* to get raw image of cam,era device
 * @param {*string} message camera device data to get raw image 
 */
 var getRawImage = function (message, callback) {
@@ -519,6 +519,10 @@ var cameraUrls = function (rtspArray, callback) {
     callback(rtspArray);
 }
 
+// var jetsonCount = 0;
+// var jetsonIP = ['10.9.43.74','10.9.43.75','10.9.43.76','10.9.43.77','10.9.43.78'];
+// var cameraCount =0;
+
 /**
 * to start stream and send images to backend and respective compute engine
 * @param {*string} camId 
@@ -551,8 +555,7 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     if (vCap != null) {
         console.log("Stream Opened Successfully with fps ::", fps);
     }
-
-    /** Rsync init :source(filePath):local folderpath ,destination: compute engine's folder path*/
+    
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')
@@ -563,6 +566,8 @@ var startLiveStreaming = function (camId, detectionType, streamingUrl, bboxes, c
     /**
     * To stream continuous frames with interval
     */
+    // var countFrame = 0;
+
     var camInterval = setInterval(function () {
         /**reading next frame */
         let frame = vCap.read();
@@ -712,6 +717,7 @@ var stopCamera = function (message, callback) {
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             clearInterval(cam.intervalObj);
+            cam.vCapObj.release();
             //to remove stopped live camera 
             cam.vCapObj.release();
             liveCamIntervalArray.splice(i, i + 1);

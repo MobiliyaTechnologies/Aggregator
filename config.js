@@ -3,7 +3,7 @@
  */
 var config = {};
 
-config.port = 3001;
+config.port = 3010;
 config.imageDirectory='./Images360';
 config.imageTargetDirectory = './Images360Target';
 config.aggregatorName = "Aggregator 10";
@@ -16,7 +16,7 @@ config.availability = "yes";
  * mqttBroker : Aggregator and WebApp communication
  */
 //config.mqttBroker = "mqtt://52.177.169.81:1887";
-config.mqttBroker = "mqtt://52.177.169.81:1880";
+config.mqttBroker = "mqtt://10.9.44.101:1889";
 
 //config.host = "http://52.177.169.81:5008";
 config.host = "https://snsbackend.mobiliya.com:5009";

@@ -6,6 +6,7 @@ var getRawImage = require('../controllers/rawImageController').getRawImage;
 // var configureCamera = require('../controllers/apiServer').configureCamera;
 var liveStreamController = require('../controllers/liveStreamingController');
 var apiController = require('../controllers/apiController');
+var logger = require('../logger/index').logger;
 
 var mqtt = require('mqtt');
 var parseJson = require('parse-json');
@@ -44,6 +45,7 @@ var topicSubscribe = function (aggregatorId) {
 }
 
 client.on('reconnect', function () {
+    
     console.log("\n**BROKER STATUS :: \n  Trying to  reconnect MQTT broker!\n-----------------------------------\n");
 });
 
@@ -57,6 +59,7 @@ client.on('close', function () {
 client.on('message', function (topic, message) {
     // message is Buffer
     console.log("DATA RECEIVED ON TOPIC :: ", topic);
+    logger.debug("Data received on topic : ",topic);
     switch (topic) {
         case '/':
             {
@@ -111,9 +114,9 @@ client.on('message', function (topic, message) {
                         console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
                     }
                     else {
-                        apiController.configureCamera(parsedJson);
-
-                        console.log("MQTT==================Adding Mobile camera Configurations Done!!\n-----------------------------------", configurationMobileCam);
+                        apiController.configureCamera(parsedJson,function(){
+                            console.log("MQTT==================Adding Mobile camera Configurations Done!!\n-----------------------------------");
+                        });
                     }
                 });
 
@@ -126,7 +129,12 @@ client.on('message', function (topic, message) {
                 console.log("\n*Stop these cameras ::", JSON.stringify(camIds));
                 liveStreamController.stopCamera(camIds, function (error) {
                     if (!error) {
-                        console.log("MQTT==================Stopped the cameras\n-----------------------------------\n");
+                        console.log("MQTT==================Stopped the DVR cameras\n-----------------------------------\n");
+                    }
+                });
+                apiController.stopMobileCam(camIds, function (error) {
+                    if (!error) {
+                        console.log("MQTT==================Stopped the Mobile cameras\n-----------------------------------\n");
                     }
                 });
                 break;

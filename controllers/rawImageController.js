@@ -1,6 +1,7 @@
 var config = require('../config');
 var parseJson = require('parse-json');
 const cv = require('opencv4nodejs');
+var fs = require('fs');
 var openStream = require('../controllers/liveStreamingController').openStream;
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
 /**

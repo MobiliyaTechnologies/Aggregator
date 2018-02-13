@@ -3,7 +3,7 @@
  */
 var config = {};
 
-config.port = 3010;
+config.port = 3008;
 config.imageDirectory='./Images360';
 config.rawImageDirectory = './RawImages';
 
@@ -49,5 +49,16 @@ config.cloudServiceFaceDetectionUrl = config.cloudComputeEngine + "/faces";
 config.cloudServiceFaceRecognizeUrl = config.cloudComputeEngine + "/faces/recognize";
 
 config.cloudServiceTargetUrl = config.host + "/results";
+
+config.logger = {
+    "service": "AS",
+    "logDirPath": "./logs",
+    "debugLevel": 3,
+    "infoLevel": 2,
+    "warnLevel": 1,
+    "errorLevel": 0,
+    "maxSize": 5242880
+}
+
 
 module.exports = config;

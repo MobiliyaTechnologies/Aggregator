@@ -93,6 +93,13 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var detectionType = parsedJson.feature;
     var jetsonFolderPath = parsedJson.jetsonCamFolderLocation;
     var bboxes = parsedJson.boundingBox;
+    var imageConfig = {
+        frameWidth: parsedJson.frameWidth.width,
+        frameHeight: parsedJson.frameWidth.height,
+        ImageWidth: parsedJson.imageWidth,
+        ImageHeight: parsedJson.imageHeight
+    }
+    var cloudServiceUrl = parsedJson.cloudServiceUrl;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
 
     //Setting FPS 
@@ -162,14 +169,14 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl,config.cloudServiceFaceDetectionUrl); // cloudServiceUrl
                                 break;
 
                             case 'faceRecognition':
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl);
                                 break;
 
                             default:
@@ -317,5 +324,8 @@ var stopCamera = function (message, callback) {
 
 module.exports.createCameraFolder = createCameraFolder;
 module.exports.startLiveStreaming = startLiveStreaming;
+module.exports.sendImageCloudComputeEngine = sendImageCloudComputeEngine;
+module.exports.sendImages = sendImages;
+module.exports.rsyncInterval = rsyncInterval;
 module.exports.stopCamera = stopCamera;
 module.exports.openStream = openStream;

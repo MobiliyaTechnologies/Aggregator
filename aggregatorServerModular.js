@@ -38,6 +38,10 @@ require('./registration').register(function (result) {
 });
 
 /**
+ * MOBILE AND 360 API CALL
+ */
+require('./routes/mobileRoutes')(app);
+/**
 * creating Base directory for images
 */
 if (!fs.existsSync(config.camFolder)) {

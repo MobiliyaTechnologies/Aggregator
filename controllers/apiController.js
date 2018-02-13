@@ -1,6 +1,11 @@
 var configuredMobileCam = [];
 
-var configureCamera = function (parsedJson) {
+var liveStreamController = require('./liveStreamingController');
+var config = require('../config');
+var fs = require('fs');
+var parseJson = require('parse-json');
+
+var configureCamera = function (parsedJson,callback) {
     var configurationMobileCam = {
         camId: parsedJson.camId,
         imageConfig: {
@@ -14,9 +19,10 @@ var configureCamera = function (parsedJson) {
         detectionType: parsedJson.feature
     };
     configuredMobileCam.push(configurationMobileCam);
+    callback(null);
 }
-/*
-app.post('/sendImage', function (req, res) {
+
+var receiveMobileImages = function (req, res) {
     console.log("Request to serve detection on mobile received :");
     if (!req.files)
         return res.status(400).send('No files were uploaded.');
@@ -53,7 +59,7 @@ app.post('/sendImage', function (req, res) {
             if (imageType === "false") {
                 console.log("No need to DEWARP  ***");
 
-                sendImages(imageName, config.imageDirectory + '/' + imageName);
+                liveStreamController.sendImages(imageName, config.imageDirectory + '/' + imageName);
                 sendToDetectionType(detectionType, imageName, config.imageDirectory + '/' + imageName, camId, camObj);
 
             }
@@ -66,8 +72,8 @@ app.post('/sendImage', function (req, res) {
     }
     else {
         //to keep as raw image
-        if (!fs.existsSync('./' + camId + '.jpg')) {
-            sampleFile.mv('./' + camId + '.jpg', function (err) {
+        if (!fs.existsSync(config.rawImageDirectory + '/' + camId + '.jpg')) {
+            sampleFile.mv(config.rawImageDirectory +'/' + camId + '.jpg', function (err) {
                 console.log(err);
                 console.log("Raw image added");
             });
@@ -75,8 +81,8 @@ app.post('/sendImage', function (req, res) {
         console.log("Camera Is not configured..!! Please do so before ..\n\nAggregator won't forward images..!!");
         res.send({ 'result': 'Camera Is not configured..!! Please do so before ..Aggregator will not forward images!' });
     }
-});
-*/
+};
+
 var sendToDetectionType = function (detectionType, imageName, imgPath, camId, camObj) {
     //send to respective compute engine
     switch (detectionType) {
@@ -84,9 +90,9 @@ var sendToDetectionType = function (detectionType, imageName, imgPath, camId, ca
             /**
             * to sync newly added file with compute engine's FS
             */
-            rsyncInterval(0, imageName, imgPath, camId, camObj.jetsonFolderPath);
+            liveStreamController.rsyncInterval(0, imageName, imgPath, camId, camObj.jetsonFolderPath);
             //deleting the sent file 
-            console.log("IMG path :: ", imageFullPath);
+            // console.log("IMG path :: ", imageFullPath);
 
             break;
 
@@ -94,14 +100,14 @@ var sendToDetectionType = function (detectionType, imageName, imgPath, camId, ca
             /**
             * to send images to cloud compute engine
             */
-            sendImageCloudComputeEngine(new Date().getTime() , imageFullPath, camObj.bboxes, camObj.imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+            liveStreamController.sendImageCloudComputeEngine(new Date().getTime() , imgPath, camObj.bboxes, camObj.imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
             break;
 
         case 'faceRecognition':
             /**
             * to send images to cloud compute engine
             */
-            sendImageCloudComputeEngine(new Date().getTime() , imageFullPath, camObj.bboxes, camObj.imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+            liveStreamController.sendImageCloudComputeEngine(new Date().getTime() , imgPath, camObj.bboxes, camObj.imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
             break;
 
         default:
@@ -130,7 +136,7 @@ var deWrapImage = function (imageName, camId, camObj, callback) {
         function (err, stdout, stderr) {
             console.log("-----------------------------ONE DWARP at " + new Date() + " of IMAGE ::" + targetPath[0]);
             // rsyncInterval(0, targetPath[0], config.imageTargetDirectory + '/' + targetPath[0], camId, camObj.jetsonFolderPath);
-            sendImages(targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
+            liveStreamController.sendImages(targetPath[0], config.imageTargetDirectory + '/' + targetPath[0]);
             sendToDetectionType(camObj.detectionType, targetPath[0], config.imageTargetDirectory + '/' + targetPath[0], camId, camObj);
         });
 
@@ -138,7 +144,7 @@ var deWrapImage = function (imageName, camId, camObj, callback) {
         function (err, stdout, stderr) {
             console.log("-----------------------------TWO DWARP", new Date() + " of IMAGE ::" + targetPath[1]);
             // rsyncInterval(3000, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1], camId, camObj.jetsonFolderPath);
-            sendImages(targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
+            liveStreamController.sendImages(targetPath[1], config.imageTargetDirectory + '/' + targetPath[1]);
             sendToDetectionType(camObj.detectionType, targetPath[1], config.imageTargetDirectory + '/' + targetPath[1], camId, camObj);
         });
 
@@ -146,7 +152,7 @@ var deWrapImage = function (imageName, camId, camObj, callback) {
         function (err, stdout, stderr) {
             console.log("-----------------------------THREE DWARP at ", new Date() + " of IMAGE ::" + targetPath[2]);
             // rsyncInterval(6000, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2], camId, camObj.jetsonFolderPath);
-            sendImages(targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
+            liveStreamController.sendImages(targetPath[2], config.imageTargetDirectory + '/' + targetPath[2]);
             sendToDetectionType(camObj.detectionType, targetPath[2], config.imageTargetDirectory + '/' + targetPath[2], camId, camObj);
         });
 
@@ -154,10 +160,34 @@ var deWrapImage = function (imageName, camId, camObj, callback) {
         function (err, stdout, stderr) {
             console.log("-----------------------------FOUR DWARP at ", new Date() + " of IMAGE ::" + targetPath[3]);
             // rsyncInterval(9000, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3], camId, camObj.jetsonFolderPath);
-            sendImages(targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
+            liveStreamController.sendImages(targetPath[3], config.imageTargetDirectory + '/' + targetPath[3]);
             sendToDetectionType(camObj.detectionType, targetPath[3], config.imageTargetDirectory + '/' + targetPath[3], camId, camObj);
         });
     callback(null);
 }
 
+/** 
+* to stop cameras specified
+* @param {*string} message 
+* @param {*function} callback 
+*/
+var stopMobileCam = function (message, callback) {
+    console.log("CALL -stopCamera");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
+    var camIds = parseJson(message);
+
+    let tempMobArr = configuredMobileCam.slice();
+    tempMobArr.forEach(function (mobCam, i) {
+        if (camIds.includes(mobCam.camId)) {
+            console.log("Stoped mobile cam ", mobCam);
+            configuredMobileCam.splice(i, i + 1);
+        }
+    });
+
+    callback(null);
+};
+
+module.exports.stopMobileCam = stopMobileCam;
 module.exports.configureCamera = configureCamera;
+module.exports.receiveMobileImages =receiveMobileImages;

@@ -4,7 +4,6 @@
 var config = {};
 
 config.port = 3008;
-config.imageDirectory='./Images360';
 config.rawImageDirectory = './RawImages';
 
 config.imageTargetDirectory = './Images360Target';
@@ -15,7 +14,7 @@ config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?c
 config.availability = "yes";
 /**
  * BROKERS address
- * mqttBroker : Aggregator and WebApp communication
+ * mqttBroker : Aggregator and Backend communication
  */
 //config.mqttBroker = "mqtt://52.177.169.81:1887";
 config.mqttBroker = "mqtt://10.9.44.101:1889";
@@ -31,12 +30,6 @@ config.cloudComputeEngine = "http://10.9.44.101:5003";
 config.cloudFaceRecognitionComputeEngine = "http://10.9.43.130:5004";
 
 config.registerAggregator = config.host + "/devices/aggregators";
-/**
- * Target jetson path
- */
-// config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/surveillance/jetson-dl/jetson-inference/build/aarch64/bin/Cameras/Cam";
-// config.jetsonFolderPath = "ubuntu@10.9.43.63:/home/ubuntu/Compute-Engine-Yolo/darknet/Cameras/Cam";
-config.jetsonFolderPath = "nvidia@10.9.43.75:/home/nvidia/Compute-Engine-Yolo/darknet/Cameras/Cam";
 /** 
  * URL of VM to send images
  */
@@ -59,6 +52,5 @@ config.logger = {
     "errorLevel": 0,
     "maxSize": 5242880
 }
-
 
 module.exports = config;

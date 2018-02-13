@@ -4,27 +4,29 @@ const cv = require('opencv4nodejs');
 var fs = require('fs');
 var openStream = require('../controllers/liveStreamingController').openStream;
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
+
 /**
 * to get raw image of camera device
 * @param {*string} message camera device data to get raw image 
 */
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
+    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     parsedJson = parseJson(message);
-    console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~", parsedJson);
+    //console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~", parsedJson);
 
     var feature = parsedJson.feature;
     var camId = parsedJson.cameraId;
     var streamingUrl = parsedJson.streamingUrl;
 
     if (parsedJson.deviceType !== "Mobile") {
-        //open the stream
-        var vCap,retryTime=1000;
+        //retryTime : delay(ms) after which will retry to open the stream
+        var vCap, retryTime = 1000;
 
+        //open the stream
         openStream(streamingUrl, retryTime, function (cap) {
             console.log("Open Stream responded as:: ", cap);
             vCap = cap;
-
 
             if (vCap != null) {
                 console.log("*Opened the stream :", streamingUrl);

@@ -6,7 +6,7 @@ var getRawImage = require('../controllers/rawImageController').getRawImage;
 // var configureCamera = require('../controllers/apiServer').configureCamera;
 var liveStreamController = require('../controllers/liveStreamingController');
 var apiController = require('../controllers/apiController');
-var logger = require('../logger/index').logger;
+// var logger = require('../logger/index').logger;
 
 var mqtt = require('mqtt');
 var parseJson = require('parse-json');
@@ -59,7 +59,7 @@ client.on('close', function () {
 client.on('message', function (topic, message) {
     // message is Buffer
     console.log("DATA RECEIVED ON TOPIC :: ", topic);
-    logger.debug("Data received on topic : ",topic);
+    // logger.debug("Data received on topic : ",topic);
     switch (topic) {
         case '/':
             {

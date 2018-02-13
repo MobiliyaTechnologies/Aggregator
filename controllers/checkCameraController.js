@@ -1,6 +1,6 @@
-
 var parseJson = require('parse-json');
 const cv = require('opencv4nodejs');
+var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
 
 /**
 * to test device if it can stream 
@@ -13,13 +13,14 @@ var checkCamera = function (message, callback) {
     var parsedJson = parseJson(message);
     var streamingUrl = parsedJson.streamingUrl;
     var deviceType = parsedJson.deviceType;
-    console.log("DEVICE URL to test::", streamingUrl);
+
+    console.log("Device URL to test::", streamingUrl);
 
     if (deviceType != 'Mobile') {
         try {
             const vCap = new cv.VideoCapture(streamingUrl);
             if (vCap !== null) {
-                console.log("Camera device can stream!");
+                console.log("Results :: Camera device can stream!");
                 var deviceResult = {
                     "userId": parsedJson.userId,
                     "camdetails": parsedJson, "flag": 1
@@ -29,26 +30,27 @@ var checkCamera = function (message, callback) {
         }
         //console.log("  Device Test Results::", message);
         catch (err) {
-            console.log(err);
+            console.log("Camera not able to stream",err);
             var deviceResult = {
                 "userId": parsedJson.userId,
                 "camdetails": parsedJson, "flag": 0
             };
         }
     }
-
+    //Mobile Camera
     else {
         var deviceResult = {
             "userId": parsedJson.userId,
-            "camdetails": parsedJson, "flag": 1
+            "camdetails": parsedJson, 
+            "flag": 1
         };
     }
-    var strdeviceResult = JSON.stringify(deviceResult);
-    //console.log("Result::", strdeviceResult);
-    var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
-    mqttClient.publish('checkCameraResponse', strdeviceResult);
-    callback(null);
+    var strDeviceResult = JSON.stringify(deviceResult);
+    //console.log("Result::", strDeviceResult);
 
+    //Publish the result
+    mqttClient.publish('checkCameraResponse', strDeviceResult);
+    callback(null);
 }
 
 module.exports.checkCamera = checkCamera;

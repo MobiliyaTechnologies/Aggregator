@@ -9,12 +9,8 @@ var parseJson = require('parse-json');
 const fs = require('fs');
 var exec = require('child_process').exec;
 var mkdirp = require('mkdirp');
-
 var request = require('request');
 var jsonSize = require('json-size');
-
-
-
 const fileUpload = require('express-fileupload');
 
 app.use(fileUpload());
@@ -33,7 +29,7 @@ require('./registration').register(function (result) {
         });
     }
     else {
-        console.log("Not able to start Aggregator Server ::", result);
+        console.log("Not able to start Aggregator API Server ::", result);
     }
 });
 
@@ -42,24 +38,23 @@ require('./registration').register(function (result) {
  */
 require('./routes/mobileRoutes')(app);
 /**
-* creating Base directory for images
+* creating directories for images
 */
 if (!fs.existsSync(config.camFolder)) {
     mkdirp(config.camFolder, function (err) {
         if (err) {
             console.log(err);
         } else
-            console.log("Base directory created :", config.camFolder);
+            console.log("Base camera directory created :", config.camFolder);
     });
 }
-//________________________Functions________________________
 
-if (!fs.existsSync(config.imageDirectory)) {
-    mkdirp(config.imageDirectory, function (err) {
+if (!fs.existsSync(config.imageTargetDirectory)) {
+    mkdirp(config.imageTargetDirectory, function (err) {
         if (err) {
             return console.error(err);
         }
-        console.log("Directory created successfully! ");
+        console.log("360 Dwarped image directory created successfully! ");
     });
 }
 
@@ -68,7 +63,7 @@ if (!fs.existsSync(config.rawImageDirectory)) {
         if (err) {
             return console.error(err);
         }
-        console.log("Directory created successfully! ");
+        console.log("Raw Image Directory created successfully! ");
     });
 }
 
@@ -77,7 +72,6 @@ app.get('/', function (req, res) {
     res.send("Aggregator alive");
 })
 
-//updation needed
 app.get('/cameras/live', function (req, res) {
     var result = [];
     liveCamIntervalArray.forEach(function (cam) {

@@ -208,6 +208,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
  * @param {*} bboxes 
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl) {
+    console.log("ClouD SERVICE URL ::",cloudServiceUrl);
     var requestObj = request.post(cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
         if (err) {
             return console.error('Failed to connect to compute engine:', err);
@@ -234,8 +235,8 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     // fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId + '.jpg'));
     //}
 
-    console.log("CAMERA ID  ::", camId);
-    console.log("RSYNC TARGET ::", jetsonFolderPath);
+    //console.log("CAMERA ID  ::", camId);
+    //console.log("RSYNC TARGET ::", jetsonFolderPath);
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')
@@ -244,7 +245,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
 
     if (timeInterval !== 0) {
         setTimeout(function () {
-            // console.log("\n\nRSYNC PATH______________________", imgPath);
+            console.log("\n\nRSYNC PATH______________________", imgPath);
             rsync.execute(function (error, code, cmd) {
                 if (error)
                     console.log("Error in rsync ::", error);
@@ -257,7 +258,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     }
     else {
         rsync.execute(function (error, code, cmd) {
-            console.log("In non-mobile camera!!",cmd);
+            //console.log("In non-mobile camera!!",cmd);
             if (error)
                 console.log("Error in rsync ::", error);
             else {

@@ -1,8 +1,12 @@
 var config = require('../config');
 var base64_encode = require('./imageProcessingController').base64_encode;
 
+var parseJson = require('parse-json');
+var fs = require('fs');
+var mkdirp = require('mkdirp');
 var Rsync = require('rsync');
 const cv = require('opencv4nodejs');
+var request = require('request');
 
 //to keep track of live cameras
 var liveCamIntervalArray = [];
@@ -73,6 +77,7 @@ var openStream = function (streamingUrl, retryTime, callback) {
  * @param {*string} parsedJson camera details to stream camera 
  */
 var startLiveStreaming = function (parsedJson, cameraFolder) {
+    console.log("Starting stream with ::",parsedJson);
     var fps;
     //fps:frames per second, interval: call to function in interval
     // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
@@ -83,19 +88,12 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-    var streamingUrl = parsedJson.streamingUrl
+    var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var detectionType = parsedJson.feature;
     var jetsonFolderPath = parsedJson.jetsonCamFolderLocation;
     var bboxes = parsedJson.boundingBox;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
-
-    //open the stream
-    var vCap;
-    openStream(streamingUrl, retryTime, function (cap) {
-        console.log("Open Stream responded as:: ", cap);
-        vCap = cap;
-    });
 
     //Setting FPS 
     switch (detectionType) {
@@ -109,75 +107,91 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             fps = 25;
             break;
     }
-
     var interval = fps;
 
-    if (vCap != null) {
-        console.log("Stream Opened Successfully with fps ::", fps);
-        console.log("*Sending frames now!!\n``````````````````````````````````\n");
-        var countframe = 0;
-        /**
-        * To stream continuous frames with interval
-        */
-        var camInterval = setInterval(function () {
-            /**reading next frame */
-            if (vCap != null) {
-                let frame = vCap.read();
-                if (countframe % fps == 0) {
-                    //countframe reset
-                    countframe = 0;
-                    var timestamp = new Date().getTime();
-                    //composing imagename
-                    var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
-                    var imageFullPath = filePath + imageName;
+    //open the stream
+    var vCap;
+    openStream(streamingUrl, retryTime, function (cap) {
+        console.log("Open Stream responded as:: ", cap);
+        vCap = cap;
 
-                    /**to write captured image of camera into local fs */
-                    cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-
-                    //send to respective compute engine
-                    switch (detectionType) {
-                        case 'humanDetection':
-                            /**
-                            * to sync newly added file with compute engine's FS
-                            */
-                            rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
-                            //deleting the sent file 
-                            console.log("IMG path :: ", imageFullPath);
-
-                            break;
-
-                        case 'faceDetection':
-                            /**
-                            * to send images to cloud compute engine
-                            */
-                            sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
-                            break;
-
-                        case 'faceRecognition':
-                            /**
-                            * to send images to cloud compute engine
-                            */
-                            sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
-                            break;
-
-                        default:
-                            console.log("Warning : Default Case executed ( specified feature:-  " + detectionType + " not served yet)!");
-                    }
-
-                    //Send images to Backend
-                    sendImages(imageName, imageFullPath);
+        if (vCap != null) {
+            console.log("Stream Opened Successfully with fps ::", fps);
+            console.log("*Sending frames now!!\n``````````````````````````````````\n");
+            var countframe = 0;
+            /**
+            * To stream continuous frames with interval
+            */
+            var camInterval = setInterval(function () {
+                if (pushedInterval == false) {
+                    /**To maintain live camera array */
+                    liveCamIntervalArray.push({
+                        camId: camId,
+                        intervalObj: camInterval,
+                        vCapObj: vCap
+                    });
+                    pushedInterval = true;
                 }
-                countframe = countframe + 1;
-            }
-            else {
-                console.log("**ERROR ::  In continuos streaming not able to stream cause Vcap is null !!")
-            }
-        }, 1000 / interval);
-    }
-    else {
-        console.log("Unable to start the stream..!!");
-        return;
-    }
+                /**reading next frame */
+                if (vCap != null) {
+                    let frame = vCap.read();
+                    if (countframe % fps == 0) {
+                        //countframe reset
+                        countframe = 0;
+                        var timestamp = new Date().getTime();
+                        //composing imagename
+                        var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
+                        var imageFullPath = filePath + imageName;
+
+                        /**to write captured image of camera into local fs */
+                        cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+
+                        //send to respective compute engine
+                        switch (detectionType) {
+                            case 'humanDetection':
+                                /**
+                                * to sync newly added file with compute engine's FS
+                                */
+                                rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
+                                //deleting the sent file 
+                                console.log("IMG path :: ", imageFullPath);
+
+                                break;
+
+                            case 'faceDetection':
+                                /**
+                                * to send images to cloud compute engine
+                                */
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+                                break;
+
+                            case 'faceRecognition':
+                                /**
+                                * to send images to cloud compute engine
+                                */
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl);
+                                break;
+
+                            default:
+                                console.log("Warning : Default Case executed ( specified feature:-  " + detectionType + " not served yet)!");
+                        }
+
+                        //Send images to Backend
+                        sendImages(imageName, imageFullPath);
+                    }
+                    countframe = countframe + 1;
+                }
+                else {
+                    console.log("**ERROR ::  In continuos streaming not able to stream cause Vcap is null !!")
+                }
+            }, 1000 / interval);
+        }
+        else {
+            console.log("Unable to start the stream..!!");
+            return;
+        }
+    });
+
 }
 
 /**
@@ -213,8 +227,8 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     // fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId + '.jpg'));
     //}
 
-    // console.log("CAMERA ID  ::", camId);
-    //console.log("RSYNC TARGET ::", config.jetsonFolderPath);
+    console.log("CAMERA ID  ::", camId);
+    console.log("RSYNC TARGET ::", jetsonFolderPath);
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')
@@ -236,6 +250,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     }
     else {
         rsync.execute(function (error, code, cmd) {
+            console.log("In non-mobile camera!!",cmd);
             if (error)
                 console.log("Error in rsync ::", error);
             else {
@@ -268,7 +283,7 @@ var sendImages = function (imgName, imgPath) {
             console.log("ERROR in posting image::" + error);
         }
         else {
-            fs.unlinkSync(imgPath);
+            // fs.unlinkSync(imgPath);
             console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
         }
     });

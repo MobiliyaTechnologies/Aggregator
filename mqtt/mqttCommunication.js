@@ -3,7 +3,9 @@ var config = require('../config');
 
 var checkCamera = require('../controllers/checkCameraController').checkCamera;
 var getRawImage = require('../controllers/rawImageController').getRawImage;
-var configureCamera = require('../controllers/apiServer').configureCamera;
+// var configureCamera = require('../controllers/apiServer').configureCamera;
+var liveStreamController = require('../controllers/liveStreamingController');
+var apiController = require('../controllers/apiController');
 
 var mqtt = require('mqtt');
 var parseJson = require('parse-json');
@@ -103,13 +105,13 @@ client.on('message', function (topic, message) {
                 //console.log("BBOX ::", parsedJson);
                 //STOP camera call
 
-                createCameraFolder(sendData, function (parsedJson, cameraFolder) {
+                liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
                     if (parsedJson.deviceType !== "Mobile") {
-                        startLiveStreaming(parsedJson, cameraFolder);
+                        liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
                         console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
                     }
                     else {
-                        configureCamera(parsedJson);
+                        apiController.configureCamera(parsedJson);
 
                         console.log("MQTT==================Adding Mobile camera Configurations Done!!\n-----------------------------------", configurationMobileCam);
                     }
@@ -122,7 +124,7 @@ client.on('message', function (topic, message) {
             {
                 var camIds = message.toString();
                 console.log("\n*Stop these cameras ::", JSON.stringify(camIds));
-                stopCamera(camIds, function (error) {
+                liveStreamController.stopCamera(camIds, function (error) {
                     if (!error) {
                         console.log("MQTT==================Stopped the cameras\n-----------------------------------\n");
                     }

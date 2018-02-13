@@ -12,12 +12,12 @@ var request = require('request');
 var liveCamIntervalArray = [];
 
 /**
-* to receive bboxes and call startstreaming
+* to create Cam<CamId> folder and call startStreaming
 * @param {*string} message 
 * @param {*function} callback 
 */
 var createCameraFolder = function (message, callback) {
-    console.log("CALL -boundingBox");
+    console.log("CALL -createCameraFolder");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     var parsedJson = parseJson(message);
@@ -39,12 +39,19 @@ var createCameraFolder = function (message, callback) {
         callback(parsedJson, cameraFolder);
 };
 
+/**
+ * to open the stream
+ * @param {*string} streamingUrl 
+ * @param {*string} retryTime 
+ * @param {*function} callback 
+ */
 var openStream = function (streamingUrl, retryTime, callback) {
     var failflag = 0;
     var failcount = 0;
+    var maxTries = 4;
 
-    console.log("In STREAM OPENING TEST **");
-    var returnVcap;
+    console.log("**In STREAM OPENING TEST for -", streamingUrl);
+
     var retryInterval = setInterval(function () {
         var vCap = null;
         if (failflag == 0) {
@@ -56,8 +63,8 @@ var openStream = function (streamingUrl, retryTime, callback) {
             } catch (error) {
                 failflag = 0;
                 failcount = failcount + 1;
-                console.log("FAILCOUNT  ::", failcount);
-                console.log("Error in opening stream :\nERROR::\n ", error);
+                console.log("**FAILCOUNT  ::", failcount);
+                console.log("**Error in opening stream :\nERROR::\n ", error);
                 console.log("___________________________________________________________________")
             }
         }
@@ -65,9 +72,9 @@ var openStream = function (streamingUrl, retryTime, callback) {
             callback(vCap);
             clearInterval(retryInterval);
         }
-        if (failcount == 4) {
+        if (failcount == maxTries) {
             clearInterval(retryInterval);
-            console.log("Reached Maximum tries ...\nCamera not able to stream!!");
+            console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
     }, retryTime);
 }
@@ -75,18 +82,20 @@ var openStream = function (streamingUrl, retryTime, callback) {
 /**
  * 
  * @param {*string} parsedJson camera details to stream camera 
+ * @param {*} cameraFolder destination folder for images
  */
 var startLiveStreaming = function (parsedJson, cameraFolder) {
-    console.log("Starting stream with ::",parsedJson);
-    var fps;
-    //fps:frames per second, interval: call to function in interval
-    // vCap.get(5);      //vCap.get(CV_CAP_PROP_FPS)
-    var pushedInterval = false;
-    //filepath to stream images
-    var filePath = cameraFolder + "/";
 
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    //console.log("Starting stream with data::", parsedJson);
+
+    var fps;
+    //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
+
+    var pushedInterval = false;
+    //filepath to stream images
+    var filePath = cameraFolder + "/";
 
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
@@ -161,15 +170,14 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 */
                                 rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
                                 //deleting the sent file 
-                                console.log("IMG path :: ", imageFullPath);
-
+                                //console.log("IMG path :: ", imageFullPath);
                                 break;
 
                             case 'faceDetection':
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl,config.cloudServiceFaceDetectionUrl); // cloudServiceUrl
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, config.cloudServiceFaceDetectionUrl); // cloudServiceUrl
                                 break;
 
                             case 'faceRecognition':
@@ -202,25 +210,35 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 }
 
 /**
- * 
- * @param {*} timestamp 
+ * to send images to Cloud Compute Engine using API post
+ * @param {*} timestamp image timestamp
  * @param {*} imageFullPath 
- * @param {*} bboxes 
+ * @param {*} bboxes AOI for detection
+ * @param {*} imageConfig configuration for managing co-ordinates
+ * @param {*} cloudServiceTargetUrl url of cloud api to be used by cloud compute engine
+ * @param {*} cloudServiceUrl url of cloud compute engine
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl) {
-    console.log("ClouD SERVICE URL ::",cloudServiceUrl);
+    //console.log("**SENDImageTOCloud");
+
+    //console.log("Cloud Service URL ::", cloudServiceUrl);
+    //console.log("IMG config : ", imageConfig);
+
+    //connect with cloudServiceUrl
     var requestObj = request.post(cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
         if (err) {
             return console.error('Failed to connect to compute engine:', err);
         }
-        console.log('Upload successful!  Compute engine respond : ', body);
+        console.log('Compute engine respond : ', parseJson(body).result);
     });
+
+    //send the image
     var form = requestObj.form();
-    console.log("IMG config : ", imageConfig);
     form.append('areaOfInterest', JSON.stringify(bboxes));
     form.append('targetUrl', cloudServiceTargetUrl);
     form.append('timestamp', timestamp);
     form.append('imageConfig', JSON.stringify(imageConfig));
+
     form.append('file',
         fs.createReadStream(imageFullPath).on('end', function () {
             console.log("***File sent to compute engine***");
@@ -228,53 +246,68 @@ var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, im
     );
 };
 
+/**
+ * rsync images to compute engine's FS
+ * @param {*} timeInterval 
+ * @param {*} imgName 
+ * @param {*} imgPath 
+ * @param {*} camId 
+ * @param {*} jetsonFolderPath 
+ */
 var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolderPath) {
-
-    // console.log("******************** :" + './' + camId + '.jpg');
-    //if (!fs.existsSync('./'+camId+'.jpg')) {
-    // fs.createReadStream(imgPath).pipe(fs.createWriteStream(camId + '.jpg'));
-    //}
 
     //console.log("CAMERA ID  ::", camId);
     //console.log("RSYNC TARGET ::", jetsonFolderPath);
+
+    //CMD
     var rsync = new Rsync()
         .shell('ssh')
         .flags('avz')
         .source(imgPath)
         .destination(jetsonFolderPath + camId);
 
+    //if DWARPED image send it after specified interval
     if (timeInterval !== 0) {
         setTimeout(function () {
-            console.log("\n\nRSYNC PATH______________________", imgPath);
+            //console.log("\n\nRSYNC PATH______________________", imgPath);
             rsync.execute(function (error, code, cmd) {
                 if (error)
                     console.log("Error in rsync ::", error);
                 else {
                     clearInterval(rsyncInterval);
-                    console.log("Rsync done !");
+                    console.log("--Rsync done of ",imgName);
                 }
             });
         }, timeInterval);
     }
+    //if normal image send it directly
     else {
         rsync.execute(function (error, code, cmd) {
             //console.log("In non-mobile camera!!",cmd);
             if (error)
                 console.log("Error in rsync ::", error);
             else {
-                console.log("Rsync done !");
+                console.log("--Rsync done of ",imgName);
                 clearInterval(rsyncInterval);
             }
         });
     }
 }
 
+/**
+ * sending images via API
+ * @param {*} imgName 
+ * @param {*} imgPath 
+ */
 var sendImages = function (imgName, imgPath) {
 
-    console.log("SEND IMAGES :: Img name : " + imgName + " Img Path :" + imgPath);
+    //console.log("SEND IMAGES :: Img name : " + imgName + " Img Path :" + imgPath);
+
+    //convert to base64
     var base64Img = base64_encode(imgPath);
     base64Img = "data:image/jpg;base64, " + base64Img;
-    // console.log("IMG ::: ", base64Img);
+
+    //console.log("base64 img ::: ", base64Img);
     var imgJsonBody = {
         imgName: imgName,
         imgBase64: base64Img
@@ -291,8 +324,8 @@ var sendImages = function (imgName, imgPath) {
             console.log("ERROR in posting image::" + error);
         }
         else {
-            // fs.unlinkSync(imgPath);
-            console.log("Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+            //fs.unlinkSync(imgPath);
+            console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
         }
     });
 }

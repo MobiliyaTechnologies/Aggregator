@@ -22,14 +22,19 @@ app.use(cors());
 
 var port = config.port;
 
+console.log("\n----------------=========PROJECT HEIMDALL=========----------------\n");
+// console.log("\n\nServing facedetection, humandetection");
+/**
+ * Registration of aggregator and starting API server
+ */
 require('./registration').register(function (result) {
     if (!result) {
         app.listen(port, function () {
-            console.log('\n=========PROJECT HEIMDALL=========\n\n**SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
+            console.log('\n**API SERVER STATUS :: \n	Project Heimdall Server is Available to Respond!!\n	Listening on port :: ', port);
         });
     }
     else {
-        console.log("Not able to start Aggregator API Server ::", result);
+        console.log("\n**API SERVER STATUS :: \n    Not able to start Aggregator API Server ::", result);
     }
 });
 

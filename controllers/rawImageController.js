@@ -31,14 +31,17 @@ var getRawImage = function (message, callback) {
             if (vCap != null) {
                 console.log("*Opened the stream :", streamingUrl);
 
+                //read one frame
                 var frame = vCap.read();
-                console.log("in readAsync");
                 var raw = frame;
                 var rawImgName = config.rawImageDirectory + "/" + camId + ".jpg";
                 //write image to local FS
                 cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+
                 //Send Image via MQTT
                 sendImageMQTT(rawImgName, parsedJson.userId);
+
+                //release the stream
                 vCap.release();
                 callback(null);
             }
@@ -48,7 +51,9 @@ var getRawImage = function (message, callback) {
         });
     } else {
         console.log("Sending Raw image of Mobile Camera");
+
         var imageName = config.rawImageDirectory + "/" + camId + ".jpg";
+
         if (fs.existsSync(imageName)) {
             //Send Image via MQTT
             sendImageMQTT(imageName, parsedJson.userId);
@@ -61,12 +66,17 @@ var getRawImage = function (message, callback) {
     }
 }
 
+/**
+ * sending images via MQTT
+ * @param {*} imageName 
+ * @param {*} userId 
+ */
 var sendImageMQTT = function (imageName, userId) {
     //convert to base64
     var base64Raw = base64_encode(imageName);
     base64Raw = "data:image/jpg;base64, " + base64Raw;
 
-    //Sync          
+    //Image and data          
     var imgJsonBody = {
         userId: userId,
         imgName: imageName,
@@ -74,7 +84,6 @@ var sendImageMQTT = function (imageName, userId) {
     };
     //MQTT APPROACH
     // console.log(rawJsonBody);
-
     var imgJsonBodyString = JSON.stringify(imgJsonBody);
     var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
     mqttClient.publish('rawMQTT', imgJsonBodyString);

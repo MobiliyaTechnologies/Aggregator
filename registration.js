@@ -5,8 +5,13 @@ var config = require('./config');
 var ip = require("ip");
 var topicSubscribe = require('./mqtt/mqttCommunication').topicSubscribe;
 
+//aggregatorId assigned by backend
 var aggregatorId;
 
+/**
+ * registering aggregator 
+ * @param {*function} callback 
+ */
 var register = function (callback) {
     serial.getSerial(function (err, value) {
         //Aggregator information 
@@ -27,21 +32,21 @@ var register = function (callback) {
 
         request(options, function (error, response, body) {
             if (error) {
-                console.log("Error Registering the Aggregator");
+                console.log("\n**REGISTRATION STATUS :: \n    Error Registering the Aggregator");
                 callback(error);
             } else {
                 console.log("\n	DeviceId : " + response.body._id);
                 aggregatorId = response.body._id;
                 
-                //MQTT Connections
+                //MQTT Topic subcription call
                 topicSubscribe(aggregatorId);
 
+                //to start api server
                 callback(null);
-                console.log("Success in Registering Aggregator !");
+                console.log("\n**REGISTRATION STATUS :: \n    Success in Registering Aggregator !");
             }
         });
     });
-
 };
 
 module.exports.register = register;

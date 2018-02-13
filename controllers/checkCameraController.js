@@ -1,6 +1,5 @@
 var parseJson = require('parse-json');
 const cv = require('opencv4nodejs');
-var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
 
 /**
 * to test device if it can stream 
@@ -47,7 +46,7 @@ var checkCamera = function (message, callback) {
     }
     var strDeviceResult = JSON.stringify(deviceResult);
     //console.log("Result::", strDeviceResult);
-
+    var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
     //Publish the result
     mqttClient.publish('checkCameraResponse', strDeviceResult);
     callback(null);

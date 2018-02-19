@@ -88,7 +88,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    //console.log("Starting stream with data::", parsedJson);
+    console.log("Starting stream with data::", JSON.stringify(parsedJson));
 
     var fps;
     //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
@@ -96,7 +96,8 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var pushedInterval = false;
     //filepath to stream images
     var filePath = cameraFolder + "/";
-
+    // if(parsedJson.streamingUrl==undefined || (parsedJson.jetsonFolderPath==undefined || parsedJson.cloudServiceUrl))
+    //     return;
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var detectionType = parsedJson.feature;
@@ -117,7 +118,11 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             fps = 25 * 3;
             break;
         case 'humanDetection':
+        case 'objectDetection':
             fps = 25;
+            break;
+        case 'faceRecognition':
+            fps = 25 * 10;
             break;
         default:
             fps = 25;
@@ -127,6 +132,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     //open the stream
     var vCap;
+    var sentImage = 0;var firstImage=1;
     openStream(streamingUrl, retryTime, function (cap) {
         console.log("Open Stream responded as:: ", cap);
         vCap = cap;
@@ -139,6 +145,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             * To stream continuous frames with interval
             */
             var camInterval = setInterval(function () {
+
                 if (pushedInterval == false) {
                     /**To maintain live camera array */
                     liveCamIntervalArray.push({
@@ -162,9 +169,17 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         /**to write captured image of camera into local fs */
                         cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
+                        // if (sentImage === 1 || firstImage===1) {
+                            // sentImage=0;
+                            //Send images to Backend
+                            sendImages(imageName, imageFullPath, function () {
+                                sentImage = 1;
+                            });
+                        // }
                         //send to respective compute engine
                         switch (detectionType) {
                             case 'humanDetection':
+                            case 'objectDetection':
                                 /**
                                 * to sync newly added file with compute engine's FS
                                 */
@@ -191,8 +206,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 console.log("Warning : Default Case executed ( specified feature:-  " + detectionType + " not served yet)!");
                         }
 
-                        //Send images to Backend
-                        sendImages(imageName, imageFullPath);
+
                     }
                     countframe = countframe + 1;
                 }
@@ -275,7 +289,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
                     console.log("Error in rsync ::", error);
                 else {
                     clearInterval(rsyncInterval);
-                    console.log("--Rsync done of ",imgName);
+                    console.log("--Rsync done of ", imgName);
                 }
             });
         }, timeInterval);
@@ -287,7 +301,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
             if (error)
                 console.log("Error in rsync ::", error);
             else {
-                console.log("--Rsync done of ",imgName);
+                console.log("--Rsync done of ", imgName);
                 clearInterval(rsyncInterval);
             }
         });
@@ -299,7 +313,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
  * @param {*} imgName 
  * @param {*} imgPath 
  */
-var sendImages = function (imgName, imgPath) {
+var sendImages = function (imgName, imgPath, callback) {
 
     //console.log("SEND IMAGES :: Img name : " + imgName + " Img Path :" + imgPath);
 
@@ -326,6 +340,7 @@ var sendImages = function (imgName, imgPath) {
         else {
             //fs.unlinkSync(imgPath);
             console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+            callback();
         }
     });
 }

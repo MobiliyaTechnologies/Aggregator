@@ -10,6 +10,8 @@ var checkCamera = function (message, callback) {
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
     var parsedJson = parseJson(message);
+    if(parsedJson.streamingUrl==undefined || parsedJson.deviceType==undefined)
+        return;
     var streamingUrl = parsedJson.streamingUrl;
     var deviceType = parsedJson.deviceType;
 

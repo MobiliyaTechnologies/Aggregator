@@ -122,6 +122,7 @@ var sendToDetectionType = function (detectionType, imageName, imgPath, camId, ca
     //send to respective compute engine
     switch (detectionType) {
         case 'humanDetection':
+	case 'objectDetection':
             /**
             * to sync newly added file with compute engine's FS
             */

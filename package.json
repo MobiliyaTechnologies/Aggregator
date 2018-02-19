@@ -35,5 +35,7 @@
     "winston": "^2.4.0",
     "winston-daily-rotate-file": "^1.7.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@angular/cli": "^1.6.8"
+  }
 }

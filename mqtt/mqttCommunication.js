@@ -43,7 +43,6 @@ var topicSubscribe = function (aggregatorId) {
     else {
         console.log("\n**MQTT topic subcsription STATUS::\n     MQTT Broker not connected yet..!\nCan not do the subscription!");
     }
-
 }
 
 client.on('reconnect', function () {

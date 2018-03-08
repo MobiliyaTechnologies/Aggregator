@@ -29,7 +29,6 @@ var register = function (callback) {
             method: 'POST',
             json: aggregatorData
         };
-
         request(options, function (error, response, body) {
             if (error) {
                 console.log("\n**REGISTRATION STATUS :: \n    Error Registering the Aggregator");
@@ -40,7 +39,7 @@ var register = function (callback) {
                 
                 //MQTT Topic subcription call
                 topicSubscribe(aggregatorId);
-
+                pingMechanismInterval(value);
                 //to start api server
                 callback(null);
                 console.log("\n**REGISTRATION STATUS :: \n    Success in Registering Aggregator !");
@@ -48,5 +47,29 @@ var register = function (callback) {
         });
     });
 };
+
+var pingMechanismInterval = function(serialNo){
+    
+    setInterval(function(){
+        var aggregatorData = {
+            "name": config.aggregatorName,
+            "url": config.url,
+            "macId": serialNo, "ipAddress": ip.address()
+        };
+        var options = {
+            rejectUnauthorized: false,
+            url: config.registerAggregator,
+            method: 'POST',
+            json: aggregatorData
+        };
+        request(options, function (error, response, body) {
+            if (error) {
+                console.log("\n**PING STATUS :: \n    Error in Ping interval of the Aggregator : ",error);
+            } else {
+                console.log("\n**PING STATUS :: \n    Success in Aggregator Ping !");
+            }
+        });
+    },config.pingInterval);
+}
 
 module.exports.register = register;

@@ -12,15 +12,16 @@ config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
+config.pingInterval = 900000;   //in miliseconds
 /**
  * BROKERS address
  * mqttBroker : Aggregator and Backend communication
  */
-//config.mqttBroker = "mqtt://52.177.169.81:1887";
+//config.mqttBroker = "mqtt://52.170.196.45:1881";
 config.mqttBroker = "mqtt://10.9.44.101:1889";
 
-//config.host = "http://52.177.169.81:5008";
-// config.host = "https://snsbackend.mobiliya.com:5009";10.9.42.211:5009
+//config.host = "http://52.170.196.45:5007";
+//config.host = "https://snsbackend.mobiliya.com:5007";
 config.host = "http://10.9.42.211:5009";
 
 

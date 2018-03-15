@@ -10,6 +10,7 @@ var request = require('request');
 
 //to keep track of live cameras
 var liveCamIntervalArray = [];
+var sendImagesToggleMap = new Map();
 
 /**
 * to create Cam<CamId> folder and call startStreaming
@@ -153,6 +154,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         intervalObj: camInterval,
                         vCapObj: vCap
                     });
+                    sendImagesToggleMap.set(camId,0);
                     pushedInterval = true;
                 }
                 /**reading next frame */
@@ -172,9 +174,12 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         // if (sentImage === 1 || firstImage===1) {
                             // sentImage=0;
                             //Send images to Backend
+                        if(sendImagesToggleMap.get(camId)){
                             sendImages(imageName, imageFullPath, function () {
                                 sentImage = 1;
                             });
+                        }
+                            
                         // }
                         //send to respective compute engine
                         switch (detectionType) {
@@ -371,6 +376,11 @@ var stopCamera = function (message, callback) {
     callback(null);
 };
 
+var toggleSendImageFlag = function(camId, flag){
+    sendImagesToggleMap.set(camId,flag);
+    console.log("Flag Toggled to "+flag+" for camera id :",camId);
+}
+
 module.exports.createCameraFolder = createCameraFolder;
 module.exports.startLiveStreaming = startLiveStreaming;
 module.exports.sendImageCloudComputeEngine = sendImageCloudComputeEngine;
@@ -378,3 +388,4 @@ module.exports.sendImages = sendImages;
 module.exports.rsyncInterval = rsyncInterval;
 module.exports.stopCamera = stopCamera;
 module.exports.openStream = openStream;
+module.exports.toggleSendImageFlag = toggleSendImageFlag;

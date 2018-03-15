@@ -21,7 +21,7 @@ client.on('connect', function () {
 });
 
 //Topic Names
-var checkCameraTopic, getRawImageTopic, cameraUrlsTopic, stopCameraTopic, startStreamingTopic;
+var checkCameraTopic, getRawImageTopic, cameraUrlsTopic, stopCameraTopic, startStreamingTopic, toggleSendImageFlag;
 
 //Subscriptions: number_of_topics:5
 var topicSubscribe = function (aggregatorId) {
@@ -32,12 +32,14 @@ var topicSubscribe = function (aggregatorId) {
         cameraUrlsTopic = 'cameraUrls';
         stopCameraTopic = 'stopCamera/' + aggregatorId;
         startStreamingTopic = 'startStreaming/' + aggregatorId;
+        toggleSendImageFlag = 'toggleSendImageFlag/' + aggregatorId;
 
         client.subscribe(checkCameraTopic);
         client.subscribe(getRawImageTopic);
         client.subscribe(cameraUrlsTopic);
         client.subscribe(stopCameraTopic);
         client.subscribe(startStreamingTopic);
+        client.subscribe(toggleSendImageFlag);
         console.log("\n**MQTT topic subcsription STATUS::\n     Done with subscription..!");
     }
     else {
@@ -140,7 +142,19 @@ client.on('message', function (topic, message) {
                 }
             });
             break;
-
+        /**
+         * Stop/Start sending images to backend for a specific camera
+         */
+        case toggleSendImageFlag:
+            var toggleObj = JSON.parse(message.toString());
+            console.log("Incoming : ",toggleObj.flag);
+            console.log("Incoming : ",toggleObj);
+            if(toggleObj.flag === 0 || toggleObj.flag === 1){
+                liveStreamController.toggleSendImageFlag(toggleObj.camId,toggleObj.flag);
+            }else{
+                console.log("Error in ToggleSendImageFlag :: Invalid flag");
+            }
+            break;
         default:
             console.log("\n Default ::  Topic:: " + topic + " not handled!!");
     }

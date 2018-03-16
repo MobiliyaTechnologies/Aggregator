@@ -19,7 +19,7 @@ $ npm install
 Starting the aggregator server:
 
 ``` bash
-$ node jetsonServer.js
+$ node aggregatorServer.js
 
 ```
 

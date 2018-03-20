@@ -6,8 +6,6 @@ var liveStreamController = require('../controllers/liveStreamingController');
 var apiController = require('../controllers/apiController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 
-// var logger = require('../logger/index').logger;
-
 var mqtt = require('mqtt');
 var parseJson = require('parse-json');
 
@@ -23,7 +21,7 @@ client.on('connect', function () {
 });
 
 //Topic Names
-var checkCameraTopic, getRawImageTopic, cameraUrlsTopic, stopCameraTopic, startStreamingTopic, toggleSendImageFlag;
+var checkCameraTopic, getRawImageTopic, stopCameraTopic, startStreamingTopic, toggleSendImageFlag;
 
 //Subscriptions: number_of_topics:5
 var topicSubscribe = function (aggregatorId) {
@@ -31,7 +29,6 @@ var topicSubscribe = function (aggregatorId) {
         client.subscribe('/');
         checkCameraTopic = 'checkCamera/' + aggregatorId;
         getRawImageTopic = 'getRawImage/' + aggregatorId;
-        cameraUrlsTopic = 'cameraUrls';
         stopCameraTopic = 'stopCamera/' + aggregatorId;
         startStreamingTopic = 'startStreaming/' + aggregatorId;
         toggleSendImageFlag = 'toggleSendImageFlag/' + aggregatorId;
@@ -39,7 +36,6 @@ var topicSubscribe = function (aggregatorId) {
 
         client.subscribe(checkCameraTopic);
         client.subscribe(getRawImageTopic);
-        client.subscribe(cameraUrlsTopic);
         client.subscribe(stopCameraTopic);
         client.subscribe(startStreamingTopic);
         client.subscribe(toggleSendImageFlag);
@@ -87,7 +83,6 @@ client.on('message', function (topic, message) {
         case getRawImageTopic:
             var sendData = message.toString();
             var parsedJson = parseJson(sendData);
-            var camId = parsedJson.camId;
 
             getRawImage(message, function (error) {
                 if (!error) {
@@ -96,16 +91,6 @@ client.on('message', function (topic, message) {
                 else
                     console.log("**Error in GetRawImage :", error);
             });
-            break;
-
-        //Need investigation
-        case cameraUrlsTopic:
-            //console.log("CAMERA TO TEST ::",JSON.parse(message.toString()));
-            // cameraUrls(JSON.parse(message.toString()), function (resultArray) {
-            //     console.log("Publishing Online Devices....", resultArray.length)
-            //     client.publish("cameraStatus", JSON.stringify(resultArray));
-            //     console.log("MQTT==================cameraUrls Done!!\n-----------------------------------\n");
-            // });
             break;
 
         /**
@@ -121,11 +106,6 @@ client.on('message', function (topic, message) {
                     liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
                     console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
                 }
-                else {
-                    apiController.configureCamera(parsedJson, function () {
-                        console.log("MQTT==================Adding Mobile camera Configurations Done!!\n-----------------------------------");
-                    });
-                }
             });
             break;
 
@@ -140,11 +120,7 @@ client.on('message', function (topic, message) {
                     console.log("MQTT==================Stopped the Streaming Cameras\n-----------------------------------\n");
                 }
             });
-            apiController.stopMobileCam(camIds, function (error) {
-                if (!error) {
-                    console.log("MQTT==================Stopped the Mobile cameras\n-----------------------------------\n");
-                }
-            });
+            
             break;
         /**
          * Stop/Start sending images to backend for a specific camera

@@ -39,7 +39,7 @@ var getRawImage = function (message, callback) {
                 cv.imwrite(rawImgName, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
                 //Send Image via MQTT
-                sendImageMQTT(rawImgName, parsedJson.userId);
+                sendImageMQTT(rawImgName, parsedJson.userId,streamingUrl);
 
                 //release the stream
                 vCap.release();
@@ -56,7 +56,7 @@ var getRawImage = function (message, callback) {
 
         if (fs.existsSync(imageName)) {
             //Send Image via MQTT
-            sendImageMQTT(imageName, parsedJson.userId);
+            sendImageMQTT(imageName, parsedJson.userId, streamingUrl);
             console.log("Sent Raw image of mobile Camera Done!");
         }
         else {
@@ -71,7 +71,7 @@ var getRawImage = function (message, callback) {
  * @param {*} imageName 
  * @param {*} userId 
  */
-var sendImageMQTT = function (imageName, userId) {
+var sendImageMQTT = function (imageName, userId, streamingUrl) {
     //convert to base64
     var base64Raw = base64_encode(imageName);
     base64Raw = "data:image/jpg;base64, " + base64Raw;
@@ -80,7 +80,8 @@ var sendImageMQTT = function (imageName, userId) {
     var imgJsonBody = {
         userId: userId,
         imgName: imageName,
-        imgBase64: base64Raw
+        imgBase64: base64Raw,
+        streamingUrl:streamingUrl
     };
     //MQTT APPROACH
     // console.log(rawJsonBody);

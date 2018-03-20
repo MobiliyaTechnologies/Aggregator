@@ -1,3 +1,4 @@
+
 /**
  * For Aggregator Code
  */
@@ -13,6 +14,17 @@ config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
 config.pingInterval = 900000;   //in miliseconds
+
+/**
+ * path to schedulerWriter python code
+ */
+config.videoIndexer = {
+    scheduleWriter : "./schedulerWriter.py",
+    url : "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
+    subscriptionKey : "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
+    privacy : "Public"
+};
+
 /**
  * BROKERS address
  * mqttBroker : Aggregator and Backend communication

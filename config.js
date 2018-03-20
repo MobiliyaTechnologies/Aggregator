@@ -1,3 +1,4 @@
+
 /**
  * For Aggregator Code
  */
@@ -13,6 +14,12 @@ config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
 config.pingInterval = 900000;   //in miliseconds
+
+/**
+ * path to schedulerWriter python code
+ */
+config.scheduleWriter = "./schedulerWriter.py";
+
 /**
  * BROKERS address
  * mqttBroker : Aggregator and Backend communication

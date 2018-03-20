@@ -8,7 +8,7 @@ var videoStorage = function (videoSourceData) {
     var d = new Date(videoSourceData.datetime);
     var arr = [d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes()];
     console.log(arr);
-    var pyshell = new PythonShell(config.scheduleWriter);
+    var pyshell = new PythonShell(config.videoIndexer.scheduleWriter);
     var videoSourceInput = [];
     videoSourceInput.push(videoSourceData.streamingUrl, videoSourceData.camId, videoSourceData.duration,
         d.getFullYear(), d.getMonth() + 1,d.getDate(), d.getHours(),  d.getMinutes(),
@@ -40,7 +40,7 @@ var videoUploading = function (req, res) {
     var fileName = req.body.fileName;
 
     var uploadVideoUrl =
-        'https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns?name=' + fileName + '&privacy=Private&callbackUrl=' + callbackUrl + '/cbIndexer?name=myFirstIndexerCBBB';
+    config.videoIndexer.url + '?name=' + fileName + '&privacy='+ config.videoIndexer.privacy +'&callbackUrl=' + callbackUrl;
     const readStream = fs.createReadStream(filePath);
 
     const requestOptions = {
@@ -49,7 +49,7 @@ var videoUploading = function (req, res) {
         },
         headers: {
             "Content-Type": "multipart/form-data",
-            "Ocp-Apim-Subscription-Key": "fb1edaf45a6b48abb38ae4fdbe3f6d1a"
+            "Ocp-Apim-Subscription-Key": config.videoIndexer.subscriptionKey //"fb1edaf45a6b48abb38ae4fdbe3f6d1a"
         },
         method: 'POST',
         url: uploadVideoUrl

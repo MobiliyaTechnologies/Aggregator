@@ -18,7 +18,12 @@ config.pingInterval = 900000;   //in miliseconds
 /**
  * path to schedulerWriter python code
  */
-config.scheduleWriter = "./schedulerWriter.py";
+config.videoIndexer = {
+    scheduleWriter : "./schedulerWriter.py",
+    url : "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
+    subscriptionKey : "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
+    privacy : "Public"
+};
 
 /**
  * BROKERS address

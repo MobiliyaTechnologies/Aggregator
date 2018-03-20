@@ -35,7 +35,7 @@ def main():
 
         timestamp =  str(int(round(time.time() * 1000)))
         fileName = lines[10]
-        FILE_OUTPUT = "/home/komal/Desktop/"+ fileName+'.avi'
+        FILE_OUTPUT = "./"+ fileName+'.avi'
 
         # Checks and deletes the output file
         # You cant have a existing file or it will through an error

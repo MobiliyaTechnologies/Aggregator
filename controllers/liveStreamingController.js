@@ -110,6 +110,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
         ImageWidth: parsedJson.imageWidth,
         ImageHeight: parsedJson.imageHeight
     }
+    var camName = parsedJson.deviceName;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
 
@@ -174,7 +175,8 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         // if (sentImage === 1 || firstImage===1) {
                             // sentImage=0;
                             //Send images to Backend
-                        if(sendImagesToggleMap.get(camId)){
+                        if(sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag)
+                        {
                             sendImages(imageName, imageFullPath, function () {
                                 sentImage = 1;
                             });
@@ -197,14 +199,14 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, config.cloudServiceFaceDetectionUrl); // cloudServiceUrl
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl,camName); // cloudServiceUrl
                                 break;
 
                             case 'faceRecognition':
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl);
+                                sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl,camName);
                                 break;
 
                             default:
@@ -237,7 +239,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
  * @param {*} cloudServiceTargetUrl url of cloud api to be used by cloud compute engine
  * @param {*} cloudServiceUrl url of cloud compute engine
  */
-var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl) {
+var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig, cloudServiceTargetUrl, cloudServiceUrl,camName) {
     //console.log("**SENDImageTOCloud");
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
@@ -254,6 +256,7 @@ var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, im
     //send the image
     var form = requestObj.form();
     form.append('areaOfInterest', JSON.stringify(bboxes));
+    form.append('deviceName', camName);
     form.append('targetUrl', cloudServiceTargetUrl);
     form.append('timestamp', timestamp);
     form.append('imageConfig', JSON.stringify(imageConfig));

@@ -4,6 +4,8 @@ var checkCamera = require('../controllers/checkCameraController').checkCamera;
 var getRawImage = require('../controllers/rawImageController').getRawImage;
 var liveStreamController = require('../controllers/liveStreamingController');
 var apiController = require('../controllers/apiController');
+var videoIndexing = require('../controllers/videoIndexing').videoStorage;
+
 // var logger = require('../logger/index').logger;
 
 var mqtt = require('mqtt');
@@ -33,6 +35,7 @@ var topicSubscribe = function (aggregatorId) {
         stopCameraTopic = 'stopCamera/' + aggregatorId;
         startStreamingTopic = 'startStreaming/' + aggregatorId;
         toggleSendImageFlag = 'toggleSendImageFlag/' + aggregatorId;
+        videoIndexingTopic = 'videoIndexing/' + aggregatorId;
 
         client.subscribe(checkCameraTopic);
         client.subscribe(getRawImageTopic);
@@ -40,6 +43,7 @@ var topicSubscribe = function (aggregatorId) {
         client.subscribe(stopCameraTopic);
         client.subscribe(startStreamingTopic);
         client.subscribe(toggleSendImageFlag);
+        client.subscribe(videoIndexingTopic);
         console.log("\n**MQTT topic subcsription STATUS::\n     Done with subscription..!");
     }
     else {
@@ -147,14 +151,25 @@ client.on('message', function (topic, message) {
          */
         case toggleSendImageFlag:
             var toggleObj = JSON.parse(message.toString());
-            console.log("Incoming : ",toggleObj.flag);
-            console.log("Incoming : ",toggleObj);
-            if(toggleObj.flag === 0 || toggleObj.flag === 1){
-                liveStreamController.toggleSendImageFlag(toggleObj.camId,toggleObj.flag);
-            }else{
+            console.log("Incoming : ", toggleObj.flag);
+            console.log("Incoming : ", toggleObj);
+            if (toggleObj.flag === 0 || toggleObj.flag === 1) {
+                liveStreamController.toggleSendImageFlag(toggleObj.camId, toggleObj.flag);
+            } else {
                 console.log("Error in ToggleSendImageFlag :: Invalid flag");
             }
             break;
+
+        /**
+         * video indexing
+         */
+        case videoIndexingTopic:
+            var videoSourceData = message.toString();
+            var parsedJson = parseJson(videoSourceData);
+            videoIndexing(parsedJson);
+            console.log("Data sent for video indexing");
+            break;
+
         default:
             console.log("\n Default ::  Topic:: " + topic + " not handled!!");
     }
@@ -162,3 +177,4 @@ client.on('message', function (topic, message) {
 
 module.exports.mqttClient = client;
 module.exports.topicSubscribe = topicSubscribe;
+

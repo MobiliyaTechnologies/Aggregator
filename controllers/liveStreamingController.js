@@ -122,8 +122,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var pushedInterval = false;
     //filepath to stream images
     var filePath = cameraFolder + "/";
-    // if(parsedJson.streamingUrl==undefined || (parsedJson.jetsonFolderPath==undefined || parsedJson.cloudServiceUrl))
-    //     return;
+
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var detectionType = parsedJson.feature;
@@ -137,9 +136,9 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     }
     var camName = parsedJson.deviceName;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
-    // var wayToCommunicate = parsedJson.wayToCommunicate;
-    var wayToCommunicate = "rsync";
-    var expectedFPS = parsedJson.fps;
+    deviceType = parsedJson.deviceType;
+    var wayToCommunicate = parsedJson.wayToCommunicate;
+    var expectedFPS = parseInt(parsedJson.fps);
 
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;
@@ -150,28 +149,15 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
 
     }
-    
+
     //calculate fps
     calculateFPS(streamingUrl, function (vCap, fps) {
         console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
-        //Setting FPS 
-        switch (detectionType) {
-            case 'faceDetection':
-                fps = 25 * 3;
-                break;
-            case 'humanDetection':
-            case 'objectDetection':
-                fps = 25;
-                break;
-            case 'faceRecognition':
-                fps = 25 * 10;
-                break;
-            default:
-                fps = 25;
-                break;
-        }
-        var interval = fps;
 
+        var interval = fps;
+        expectedFPS = parseInt(fps / expectedFPS);
+
+        console.log("\nExpected FPS ::::::::::::::::", expectedFPS);
         //open the stream
         console.log("Open Stream responded as:: ", vCap);
 
@@ -197,7 +183,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                 /**reading next frame */
                 if (vCap != null) {
                     let frame = vCap.read();
-                    if (countframe % fps == 0) {
+                    if (countframe % expectedFPS == 0) {
                         //countframe reset
                         countframe = 0;
                         var timestamp = new Date().getTime();

@@ -80,6 +80,31 @@ var openStream = function (streamingUrl, retryTime, callback) {
     }, retryTime);
 }
 
+var calculateFPS = function (streamingUrl, callback) {
+    var framesToread = 408;
+    var startFrameCount = 8;
+    var frameNumber = 1;
+    var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
+
+    openStream(streamingUrl, retryTime, function (vCap) {
+        console.log("OpenStream response :: ", vCap);
+        while (frameNumber != framesToread) {
+            let frame = vCap.read();
+            if (frameNumber == startFrameCount)
+                var start = new Date().getTime();
+
+            if (frameNumber == framesToread - 1) {
+                var end = new Date().getTime();
+                var FPS = parseInt((framesToread - startFrameCount) / ((end - start) / 1000));
+                console.log("FPS    ::", FPS);
+                callback(vCap, FPS);
+            }
+            frameNumber += 1;
+        }
+
+    });
+}
+
 /**
  * 
  * @param {*string} parsedJson camera details to stream camera 
@@ -112,33 +137,43 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     }
     var camName = parsedJson.deviceName;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
-    var wayToCommunicate = parsedJson.wayToCommunicate;
+    // var wayToCommunicate = parsedJson.wayToCommunicate;
+    var wayToCommunicate = "rsync";
+    var expectedFPS = parsedJson.fps;
+
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
-
-    //Setting FPS 
-    switch (detectionType) {
-        case 'faceDetection':
-            fps = 25 * 3;
-            break;
-        case 'humanDetection':
-        case 'objectDetection':
-            fps = 25;
-            break;
-        case 'faceRecognition':
-            fps = 25 * 10;
-            break;
-        default:
-            fps = 25;
-            break;
-    }
-    var interval = fps;
-
-    //open the stream
     var vCap;
-    var sentImage = 0; var firstImage = 1;
-    openStream(streamingUrl, retryTime, function (cap) {
-        console.log("Open Stream responded as:: ", cap);
-        vCap = cap;
+
+    switch (deviceType) {
+        case 'IP':
+            console.log("Checking IP camera");
+            streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
+
+    }
+    
+    //calculate fps
+    calculateFPS(streamingUrl, function (vCap, fps) {
+        console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
+        //Setting FPS 
+        switch (detectionType) {
+            case 'faceDetection':
+                fps = 25 * 3;
+                break;
+            case 'humanDetection':
+            case 'objectDetection':
+                fps = 25;
+                break;
+            case 'faceRecognition':
+                fps = 25 * 10;
+                break;
+            default:
+                fps = 25;
+                break;
+        }
+        var interval = fps;
+
+        //open the stream
+        console.log("Open Stream responded as:: ", vCap);
 
         if (vCap != null) {
             console.log("Stream Opened Successfully with fps ::", fps);
@@ -214,7 +249,6 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             return;
         }
     });
-
 }
 
 /** 

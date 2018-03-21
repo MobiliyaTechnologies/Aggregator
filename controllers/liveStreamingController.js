@@ -112,6 +112,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     }
     var camName = parsedJson.deviceName;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
+    var wayToCommunicate = parsedJson.wayToCommunicate;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
 
     //Setting FPS 
@@ -134,7 +135,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     //open the stream
     var vCap;
-    var sentImage = 0;var firstImage=1;
+    var sentImage = 0; var firstImage = 1;
     openStream(streamingUrl, retryTime, function (cap) {
         console.log("Open Stream responded as:: ", cap);
         vCap = cap;
@@ -155,13 +156,13 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         intervalObj: camInterval,
                         vCapObj: vCap
                     });
-                    sendImagesToggleMap.set(camId,0);
+                    sendImagesToggleMap.set(camId, 0);
                     pushedInterval = true;
                 }
                 /**reading next frame */
                 if (vCap != null) {
                     let frame = vCap.read();
-                    if (countframe %fps== 0) {
+                    if (countframe % fps == 0) {
                         //countframe reset
                         countframe = 0;
                         var timestamp = new Date().getTime();
@@ -172,50 +173,36 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         /**to write captured image of camera into local fs */
                         cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
-                        // if (sentImage === 1 || firstImage===1) {
-                            // sentImage=0;
-                            //Send images to Backend
-                        if(sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag)
-                        {
+                        //Send images to Backend
+                        if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
                             imageTransfer.sendImages(imageName, imageFullPath, function () {
                                 sentImage = 1;
                             });
                         }
-                            
-                        // }
+
                         //send to respective compute engine
-                        switch (detectionType) {
-                            case 'humanDetection':
-                            case 'objectDetection':
+                        switch (wayToCommunicate) {
+                            case 'rsync':
                                 /**
                                 * to sync newly added file with compute engine's FS
                                 */
-                               imageTransfer.rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
-                                //deleting the sent file 
-                                //console.log("IMG path :: ", imageFullPath);
+                                imageTransfer.rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
                                 break;
 
-                            case 'faceDetection':
+                            case 'restAPI':
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                               imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl,camName); // cloudServiceUrl
-                                break;
-
-                            case 'faceRecognition':
-                                /**
-                                * to send images to cloud compute engine
-                                */
-                               imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl,camName);
+                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName); // cloudServiceUrl
                                 break;
 
                             default:
-                                console.log("Warning : Default Case executed ( specified feature:-  " + detectionType + " not served yet)!");
+                                console.log("Warning : Default Case executed ( specified way of communication not available:-  " + detectionType
+                                    + " not served yet)!");
                         }
-
-
                     }
                     countframe = countframe + 1;
+
                 }
                 else {
                     console.log("**ERROR ::  In continuos streaming not able to stream cause Vcap is null !!")
@@ -261,9 +248,9 @@ var stopCamera = function (message, callback) {
  * @param {*} camId 
  * @param {*} flag 
  */
-var toggleSendImageFlag = function(camId, flag){
-    sendImagesToggleMap.set(camId,flag);
-    console.log("Flag Toggled to "+flag+" for camera id :",camId);
+var toggleSendImageFlag = function (camId, flag) {
+    sendImagesToggleMap.set(camId, flag);
+    console.log("Flag Toggled to " + flag + " for camera id :", camId);
 }
 
 module.exports.createCameraFolder = createCameraFolder;

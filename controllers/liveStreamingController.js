@@ -218,7 +218,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 break;
 
                             default:
-                                console.log("Warning : Default Case executed ( specified way of communication not available:-  " + detectionType
+                                console.log("Warning : Default Case executed ( specified way of communication not available:-  " + wayToCommunicate
                                     + " not served yet)!");
                         }
                     }

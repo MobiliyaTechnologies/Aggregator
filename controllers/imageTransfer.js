@@ -14,7 +14,7 @@ var request = require('request');
  * @param {*} streamingUrl 
  */
 var sendImageBase64MQTT = function (imageName, format, mqttTopic,
-    imageFullPath = undefined, userId = undefined, streamingUrl= undefined) {
+    imageFullPath = undefined, userId = undefined, streamingUrl = undefined) {
 
     if (format != "base64") {
         //convert to base64
@@ -43,8 +43,8 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
  * @param {*} cloudServiceTargetUrl url of cloud api to be used by cloud compute engine
  * @param {*} cloudServiceUrl url of cloud compute engine
  */
-var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig, 
-    cloudServiceTargetUrl, cloudServiceUrl,camName) {
+var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
+    cloudServiceTargetUrl, cloudServiceUrl, camName) {
     //console.log("**SENDImageTOCloud");
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
@@ -85,7 +85,6 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
 
     //console.log("CAMERA ID  ::", camId);
     //console.log("RSYNC TARGET ::", jetsonFolderPath);
-
     //CMD
     var rsync = new Rsync()
         .shell('ssh')
@@ -101,7 +100,6 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
                 if (error)
                     console.log("Error in rsync ::", error);
                 else {
-                    clearInterval(rsyncInterval);
                     console.log("--Rsync done of ", imgName);
                 }
             });
@@ -115,7 +113,6 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
                 console.log("Error in rsync ::", error);
             else {
                 console.log("--Rsync done of ", imgName);
-                clearInterval(rsyncInterval);
             }
         });
     }
@@ -128,7 +125,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
  */
 var sendImages = function (imgName, imgPath) {
     //console.log("SEND IMAGES :: Img name : " + imgName + " Img Path :" + imgPath);
-    
+
     //convert to base64
     var base64Img = base64_encode(imgPath);
     base64Img = "data:image/jpg;base64, " + base64Img;

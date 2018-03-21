@@ -138,7 +138,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
     deviceType = parsedJson.deviceType;
     var wayToCommunicate = parsedJson.wayToCommunicate;
-    var expectedFPS = parseInt(parsedJson.fps);
+    var expectedFPS = parseInt(parsedJson.computeEngineFps);
 
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;

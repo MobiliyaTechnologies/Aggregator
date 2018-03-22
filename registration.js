@@ -18,7 +18,7 @@ var register = function (callback) {
         var aggregatorData = {
             "name": config.aggregatorName,
             "url": config.url,
-            "macId": value, "ipAddress": ip.address(),
+            "macId": "register", "ipAddress": ip.address(),
             "availability": config.availability,
             "location": config.location,
             "channelId": config.channelId
@@ -29,28 +29,38 @@ var register = function (callback) {
             method: 'POST',
             json: aggregatorData
         };
-        request(options, function (error, response, body) {
-            if (error) {
-                console.log("\n**REGISTRATION STATUS :: \n    Error Registering the Aggregator");
-                callback(error);
-            } else {
-                console.log("\n	DeviceId : " + response.body._id);
-                aggregatorId = response.body._id;
-                
-                //MQTT Topic subcription call
-                topicSubscribe(aggregatorId);
-                pingMechanismInterval(value);
-                //to start api server
-                callback(null);
-                console.log("\n**REGISTRATION STATUS :: \n    Success in Registering Aggregator !");
-            }
-        });
+        var maxTries = 4;
+
+        var registerInterval = setInterval(function () {
+            request(options, function (error, response, body) {
+                if (error) {
+                    console.log("\n**REGISTRATION STATUS :: \n    Error Registering the Aggregator");
+                    callback(error);
+                } else {
+                    console.log("\n	DeviceId : " + response.body._id);
+                    aggregatorId = response.body._id;
+
+                    //MQTT Topic subcription call
+                    topicSubscribe(aggregatorId);
+                    pingMechanismInterval(value);
+                    //to start api server
+                    clearInterval(registerInterval);
+                    callback(null);
+                    console.log("\n**REGISTRATION STATUS :: \n    Success in Registering Aggregator !");
+                }
+                maxTries = maxTries - 1;
+                if (maxTries === 0) {
+                    console.log("\n\n**MaxTries Attended for registration!\n**Aggregator server not started...!\nPlease restart the server!");
+                    clearInterval(registerInterval);
+                }
+            });
+        }, 3000);
     });
 };
 
-var pingMechanismInterval = function(serialNo){
-    
-    setInterval(function(){
+var pingMechanismInterval = function (serialNo) {
+
+    setInterval(function () {
         var aggregatorData = {
             "name": config.aggregatorName,
             "url": config.url,
@@ -64,12 +74,12 @@ var pingMechanismInterval = function(serialNo){
         };
         request(options, function (error, response, body) {
             if (error) {
-                console.log("\n**PING STATUS :: \n    Error in Ping interval of the Aggregator : ",error);
+                console.log("\n**PING STATUS :: \n    Error in Ping interval of the Aggregator : ", error);
             } else {
                 console.log("\n**PING STATUS :: \n    Success in Aggregator Ping !");
             }
         });
-    },config.pingInterval);
+    }, config.pingInterval);
 }
 
 module.exports.register = register;

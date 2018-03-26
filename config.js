@@ -4,11 +4,11 @@
  */
 var config = {};
 
-config.port = 3008;
+config.port = 3012;
 config.rawImageDirectory = './RawImages';
 
 config.imageTargetDirectory = './Images360Target';
-config.aggregatorName = "Aggregator06";
+config.aggregatorName = "DevelopAggregator";
 config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
@@ -19,10 +19,10 @@ config.pingInterval = 900000;   //in miliseconds
  * path to schedulerWriter python code
  */
 config.videoIndexer = {
-    scheduleWriter : "./schedulerWriter.py",
-    url : "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
-    subscriptionKey : "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
-    privacy : "Public"
+    scheduleWriter: "./schedulerWriter.py",
+    url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
+    subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
+    privacy: "Public"
 };
 
 /**
@@ -30,12 +30,15 @@ config.videoIndexer = {
  * mqttBroker : Aggregator and Backend communication
  */
 //config.mqttBroker = "mqtt://52.170.196.45:1881";
-config.mqttBroker = "mqtt://10.9.44.101:1889";
+config.mqttBroker = "mqtt://52.170.196.45:1887";
+//config.mqttBroker = "mqtt://10.9.44.101:1889";
 
 //config.host = "http://52.170.196.45:5007";
 //config.host = "https://snsbackend.mobiliya.com:5007";
-config.host = "http://10.9.42.211:5009";
+config.host = "https://snsserverdevbackend.azurewebsites.net";
+//config.host = "http://10.9.42.211:5009";
 
+config.localVideoUploadCallUrl = 'http://localhost:' + config.port + '/videoUploading';
 
 config.cloudComputeEngine = "http://10.9.44.101:5003";
 // config.cloudComputeEngine = "http://10.9.43.130:5004";

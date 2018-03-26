@@ -44,7 +44,7 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
  * @param {*} cloudServiceUrl url of cloud compute engine
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
-    cloudServiceTargetUrl, cloudServiceUrl, camName) {
+    cloudServiceTargetUrl, cloudServiceUrl, camName, userId) {
     //console.log("**SENDImageTOCloud");
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
@@ -65,6 +65,7 @@ var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, im
     form.append('targetUrl', cloudServiceTargetUrl);
     form.append('timestamp', timestamp);
     form.append('imageConfig', JSON.stringify(imageConfig));
+    form.append('userId',userId);
 
     form.append('file',
         fs.createReadStream(imageFullPath).on('end', function () {

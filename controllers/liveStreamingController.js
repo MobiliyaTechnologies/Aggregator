@@ -50,7 +50,8 @@ var openStream = function (streamingUrl, retryTime, callback) {
     var failflag = 0;
     var failcount = 0;
     var maxTries = 4;
-
+    if (streamingUrl === "0")
+        streamingUrl = parseInt(streamingUrl)
     console.log("**In STREAM OPENING TEST for -", streamingUrl);
 
     var retryInterval = setInterval(function () {
@@ -85,23 +86,29 @@ var calculateFPS = function (streamingUrl, callback) {
     var startFrameCount = 8;
     var frameNumber = 1;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
-
+    var FPS;
     openStream(streamingUrl, retryTime, function (vCap) {
         console.log("OpenStream response :: ", vCap);
-        while (frameNumber != framesToread) {
-            let frame = vCap.read();
-            if (frameNumber == startFrameCount)
-                var start = new Date().getTime();
-
-            if (frameNumber == framesToread - 1) {
-                var end = new Date().getTime();
-                var FPS = parseInt((framesToread - startFrameCount) / ((end - start) / 1000));
-                console.log("FPS    ::", FPS);
-                callback(vCap, FPS);
-            }
-            frameNumber += 1;
+        //get FPS of stream using OpenCV. If not works calculate it.
+        FPS = vCap.get(5);
+        if (FPS > 0) {
+            callback(vCap, FPS);
         }
+        else {
+            while (frameNumber != framesToread) {
+                let frame = vCap.read();
+                if (frameNumber == startFrameCount)
+                    var start = new Date().getTime();
 
+                if (frameNumber == framesToread - 1) {
+                    var end = new Date().getTime();
+                    FPS = parseInt((framesToread - startFrameCount) / ((end - start) / 1000));
+                    console.log("FPS    ::", FPS);
+                    callback(vCap, FPS);
+                }
+                frameNumber += 1;
+            }
+        }
     });
 }
 
@@ -135,10 +142,11 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
         ImageHeight: parsedJson.imageHeight
     }
     var camName = parsedJson.deviceName;
+    var userId = parsedJson.userId;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
     deviceType = parsedJson.deviceType;
     var wayToCommunicate = parsedJson.wayToCommunicate;
-    var expectedFPS = parseInt(parsedJson.computeEngineFps);
+    var expectedFPS = parsedJson.computeEngineFps;
 
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;
@@ -183,6 +191,10 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                 /**reading next frame */
                 if (vCap != null) {
                     let frame = vCap.read();
+                    if (frame.empty) {
+                        vCap.reset();
+                        frame = vCap.read();
+                    }
                     if (countframe % expectedFPS == 0) {
                         //countframe reset
                         countframe = 0;
@@ -214,7 +226,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName); // cloudServiceUrl
+                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId); // cloudServiceUrl
                                 break;
 
                             default:

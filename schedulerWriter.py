@@ -73,7 +73,13 @@ def main():
         # When everything done, release the capture
         cap.release()
         out.release()
-        r = requests.post(aggregatorUrl, json={"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9]})
+
+        headers = {'content-type': 'application/json'}
+        my_data = {"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9]}
+
+        # get_data = f.post(URL, )
+
+        r = requests.post(aggregatorUrl,timeout=30, data=json.dumps(my_data),headers=headers)
         #r.status_code
     # lines = ["rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=12&subtype=0","Cam12codeCron","60"]
     lines = read_in()

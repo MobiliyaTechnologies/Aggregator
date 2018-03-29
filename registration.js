@@ -18,7 +18,7 @@ var register = function (callback) {
         var aggregatorData = {
             "name": config.aggregatorName,
             "url": config.url,
-            "macId": "register", "ipAddress": ip.address(),
+            "macId": value, "ipAddress": ip.address(),
             "availability": config.availability,
             "location": config.location,
             "channelId": config.channelId

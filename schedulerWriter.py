@@ -1,16 +1,12 @@
 
 import sys
 import sched
-import time
 from datetime import datetime as dt
 import datetime
 import os
 import cv2
-import numpy as np
-import os
-import sys
 import time
-import sys, json
+import json
 import requests
 
 def now_str():
@@ -96,7 +92,7 @@ def main():
     # time, priority, callable, *args
 
     scheduler.enterabs(time.mktime(first_time.timetuple()), 1,
-                       writeVideo, ('Run the first time',))
+                       writeVideo, ('Running',))
     scheduler.run()
 
 if __name__ == '__main__':

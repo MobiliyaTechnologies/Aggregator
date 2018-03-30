@@ -12,7 +12,7 @@ var videoStorage = function (videoSourceData) {
     var videoSourceInput = [];
     videoSourceInput.push(videoSourceData.streamingUrl, videoSourceData.camId, videoSourceData.duration,
         d.getFullYear(), d.getMonth() + 1,d.getDate(), d.getHours(),  d.getMinutes(),
-        config.localVideoUploadCallUrl,
+        config.videoIndexer.localVideoUploadCallUrl,
         videoSourceData.callbackUrl, videoSourceData.filename);
 
     var videoToStream = JSON.stringify(videoSourceInput);

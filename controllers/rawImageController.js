@@ -48,7 +48,7 @@ var getRawImage = function (message, callback) {
 
                     //Send Image via MQTT
                     imageTransfer.sendImageBase64MQTT(rawImgName, "notbase64",
-                        "rawMQTT", rawImgFullPath, parsedJson.userId, streamingUrl);
+                        "rawMQTT", rawImgFullPath, parsedJson.userId, streamingUrl,camId);
                     //release the stream
                     vCap.release();
                     callback(null);

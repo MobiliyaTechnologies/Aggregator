@@ -23,7 +23,9 @@ app.use(cors());
 var port = config.port;
 
 console.log("\n----------------=========PROJECT HEIMDALL=========----------------\n");
-// console.log("\n\nServing facedetection, humandetection");
+console.log("\n		Name : ",config.aggregatorName);
+console.log("		Backend : "+config.host+"\n");
+
 /**
  * Registration of aggregator and starting API server
  */

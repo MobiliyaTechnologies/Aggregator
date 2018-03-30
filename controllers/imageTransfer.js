@@ -3,7 +3,7 @@ var Rsync = require('rsync');
 var fs = require('fs');
 var config = require('../config');
 var request = require('request');
-
+var parseJson = require('parse-json');
 /**
  * common function to send Images using MQTT in base64 format
  * @param {*} imageName 
@@ -14,7 +14,7 @@ var request = require('request');
  * @param {*} streamingUrl 
  */
 var sendImageBase64MQTT = function (imageName, format, mqttTopic,
-    imageFullPath = undefined, userId = undefined, streamingUrl = undefined) {
+    imageFullPath = undefined, userId = undefined, streamingUrl = undefined, camId) {
 
     if (format != "base64") {
         //convert to base64
@@ -26,7 +26,8 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
     var imgJsonBody = {
         userId: userId,
         imgName: imageFullPath,
-        imgBase64: base64Image
+        imgBase64: base64Image,
+	camId:camId
     };
     //MQTT APPROACH
     var imgJsonBodyString = JSON.stringify(imgJsonBody);
@@ -45,17 +46,18 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
     cloudServiceTargetUrl, cloudServiceUrl, camName, userId) {
-    //console.log("**SENDImageTOCloud");
+    console.log("**SENDImageTOCloud::\n",timestamp, imageFullPath, bboxes, imageConfig,
+    cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
     //console.log("IMG config : ", imageConfig);
 
     //connect with cloudServiceUrl
-    var requestObj = request.post(cloudServiceUrl, function optionalCallback(err, httpResponse, body) {
+    var requestObj = request.post(cloudServiceUrl, function(err, res, body) {
         if (err) {
-            return console.error('Failed to connect to compute engine:', err);
-        }
-        console.log('Compute engine respond : ', parseJson(body).result);
+            console.log('Failed to connect to compute engine:', err);
+        }else
+        {console.log('Compute engine respond',body.result);}
     });
 
     //send the image

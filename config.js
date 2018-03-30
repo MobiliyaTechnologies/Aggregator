@@ -5,15 +5,15 @@
 var config = {};
 
 config.port = 3012;
-config.rawImageDirectory = './RawImages';
 
+config.rawImageDirectory = './RawImages';
 config.imageTargetDirectory = './Images360Target';
-config.aggregatorName = "DevelopAggregator";
+config.aggregatorName = "AggregatorClient";
 config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
-config.pingInterval = 900000;   //in miliseconds
+config.pingInterval = 900000;   //in miliseconds(9 sec)
 
 /**
  * path to schedulerWriter python code
@@ -22,28 +22,26 @@ config.videoIndexer = {
     scheduleWriter: "./schedulerWriter.py",
     url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
     subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
-    privacy: "Public"
+    privacy: "Public",
+    localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading'
 };
 
 /**
  * BROKERS address
  * mqttBroker : Aggregator and Backend communication
  */
-//config.mqttBroker = "mqtt://52.170.196.45:1881";
-config.mqttBroker = "mqtt://52.170.196.45:1887";
-//config.mqttBroker = "mqtt://10.9.44.101:1889";
 
+//config.mqttBroker = "mqtt://52.170.196.45:1881";
+config.mqttBroker = "mqtt://52.170.196.45:1880";	//Client
+//config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
+
+/**
+ * Backend
+ */
 //config.host = "http://52.170.196.45:5007";
 //config.host = "https://snsbackend.mobiliya.com:5007";
-config.host = "https://snsserverdevbackend.azurewebsites.net";
-//config.host = "http://10.9.42.211:5009";
-
-config.localVideoUploadCallUrl = 'http://localhost:' + config.port + '/videoUploading';
-
-config.cloudComputeEngine = "http://10.9.44.101:5003";
-// config.cloudComputeEngine = "http://10.9.43.130:5004";
-
-config.cloudFaceRecognitionComputeEngine = "http://10.9.43.130:5004";
+config.host = "https://snsserverbackend.azurewebsites.net";	//client
+//config.host = "http://10.9.42.211:5009"; 	//Local
 
 config.registerAggregator = config.host + "/devices/aggregators";
 /** 
@@ -53,9 +51,6 @@ config.sendLiveStreamUploadURL = config.host + "/images";
 //base directory
 config.camFolder = "./Cameras";
 config.livestreamingCamFolder = "./Cameras/Cam";
-
-config.cloudServiceFaceDetectionUrl = config.cloudComputeEngine + "/faces";
-config.cloudServiceFaceRecognizeUrl = config.cloudComputeEngine + "/faces/recognize";
 
 config.cloudServiceTargetUrl = config.host + "/results";
 

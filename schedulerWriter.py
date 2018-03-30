@@ -1,4 +1,3 @@
-import daemon # install python-daemon from pypi
 
 import sys
 import sched
@@ -52,7 +51,7 @@ def main():
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT) # float
 
         # Define the codec and create VideoWriter object
-        fourcc = cv2.VideoWriter_fourcc(*'X264')
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(FILE_OUTPUT,fourcc, 20.0, (int(width),int(height)))
         # if cap.isOpened():
         #     print "cap opened"

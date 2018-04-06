@@ -16,6 +16,7 @@ $ cd
 $ chmod +x install-opencv.sh
 $ ./install-opencv.sh
 $ cd jetson-device-client
+$ npm run pythonPackages
 $ npm install
 ```
 

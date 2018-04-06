@@ -43,7 +43,7 @@ require('./registration').register(function (result) {
 /**
  * MOBILE AND 360 API CALL
  */
-require('./routes/mobileRoutes')(app);
+require('./routes/aggregatorRoutes')(app);
 /**
 * creating directories for images
 */

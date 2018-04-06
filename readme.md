@@ -10,7 +10,13 @@
 
 ```bash 
 $ git clone 
-$ cd jestson-device-client
+$ cd jetson-device-client
+$ mv install-opencv.sh ~/
+$ cd 
+$ chmod +x install-opencv.sh
+$ ./install-opencv.sh
+$ cd jetson-device-client
+$ npm run pythonPackages
 $ npm install
 ```
 

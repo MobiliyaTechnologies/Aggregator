@@ -22,6 +22,8 @@ Starting the aggregator server:
 $ node aggregatorServer.js
 
 ```
+## Limitations
+- Camera streaming URL should be known and tested before passing as input to Aggregator.
 
 ## License
 

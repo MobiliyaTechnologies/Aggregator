@@ -1,12 +1,16 @@
 //ping mechanism
 var serial = require('node-serial-key');
 var request = require('request');
-var config = require('./config');
 var ip = require("ip");
+
+var config = require('./config');
 var topicSubscribe = require('./mqtt/mqttCommunication').topicSubscribe;
 
 //aggregatorId assigned by backend
 var aggregatorId;
+var iothub = require('azure-iothub');
+var connectionString = config.iotHub.connectionString;
+var registry = iothub.Registry.fromConnectionString(connectionString);
 
 /**
  * registering aggregator 
@@ -37,14 +41,38 @@ var register = function (callback) {
                     console.log("\n**REGISTRATION STATUS :: \n    Error Registering the Aggregator");
                     callback(error);
                 } else {
+                    clearInterval(registerInterval);
                     console.log("\n	DeviceId : " + response.body._id);
                     aggregatorId = response.body._id;
 
-                    //MQTT Topic subcription call
-                    topicSubscribe(aggregatorId);
-                    pingMechanismInterval(value);
-                    //to start api server
-                    clearInterval(registerInterval);
+                    // Create a new device
+                    var device = {
+                        deviceId: aggregatorId
+                    };
+
+                    registry.create(device, function (err, deviceInfo, res) {
+                        if (err) {
+                            console.log(' error: ' + err.toString());
+                            registry.get(device.deviceId, function (err, deviceInfo, res) {
+                                console.log("Device Already Registered with info :\n", deviceInfo);
+                                var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                                topicSubscribe(deviceConnectionString);
+                                pingMechanismInterval(value);
+                            });
+                        }
+
+                        if (res) console.log(' status: ' + res.statusCode + ' ' + res.statusMessage);
+                        if (deviceInfo) {
+                            console.log(' device info: ' + JSON.stringify(deviceInfo));
+                            console.log("Formed Connection string to use in device :: " +
+                                "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId
+                                + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey);
+                            var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                            //MQTT Topic subcription call
+                            topicSubscribe(deviceConnectionString);
+                            pingMechanismInterval(value);
+                        }
+                    });
                     callback(null);
                     console.log("\n**REGISTRATION STATUS :: \n    Success in Registering Aggregator !");
                 }

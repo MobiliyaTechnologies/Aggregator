@@ -2,6 +2,8 @@
 * to test device if it can stream 
 * @param {*string} message 
 */
+var config = require('../config');
+var request = require('request');
 var parseJson = require('parse-json');
 var openStream = require('../controllers/liveStreamingController').openStream;
 
@@ -44,12 +46,22 @@ var checkCamera = function (message, callback) {
                         "camdetails": parsedJson, "flag": 0
                     };
                 }
-                var strDeviceResult = JSON.stringify(deviceResult);
-                console.log("Result::", strDeviceResult);
-                var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
-                //Publish the result
-                mqttClient.publish('checkCameraResponse', strDeviceResult);
-                callback(null);
+                var options = {
+                    uri: config.sendCheckCameraResponse,
+                    method: 'POST',
+                    json: deviceResult
+                };
+                request(options, function (error, response, body) {
+                    console.log(body)
+                    if (!error && response.statusCode == 200) {
+                        console.log("CheckCamera Response :\n", deviceResult);
+                        callback(null);
+
+                    } else {
+                        console.log("Error in posting Raw Image:", error);
+                    }
+                });
+
             });
             break;
     }

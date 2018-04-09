@@ -46,9 +46,8 @@ var getRawImage = function (message, callback) {
                     //write image to local FS
                     cv.imwrite(rawImgFullPath, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
-                    //Send Image via MQTT
-                    imageTransfer.sendImageBase64MQTT(rawImgName, "notbase64",
-                        "rawMQTT", rawImgFullPath, parsedJson.userId, streamingUrl,camId);
+                    imageTransfer.sendImageRest(rawImgName,
+                        config.sendRawImage, rawImgFullPath, parsedJson.userId, streamingUrl, camId);
                     //release the stream
                     vCap.release();
                     callback(null);

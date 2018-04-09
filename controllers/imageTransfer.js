@@ -4,6 +4,8 @@ var fs = require('fs');
 var config = require('../config');
 var request = require('request');
 var parseJson = require('parse-json');
+
+
 /**
  * common function to send Images using MQTT in base64 format
  * @param {*} imageName 
@@ -27,12 +29,43 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
         userId: userId,
         imgName: imageFullPath,
         imgBase64: base64Image,
-	camId:camId
+        camId: camId
     };
     //MQTT APPROACH
     var imgJsonBodyString = JSON.stringify(imgJsonBody);
     var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
     mqttClient.publish(mqttTopic, imgJsonBodyString);
+}
+
+var sendImageRest = function (imageName, sendRawImageuri,
+    imageFullPath = undefined, userId = undefined, streamingUrl = undefined, camId) {
+    //convert to base64
+    base64Image = base64_encode(imageFullPath);
+    base64Image = "data:image/jpg;base64, " + base64Image;
+
+    //Image and data          
+    var imgJsonBody = {
+        userId: userId,
+        imgName: imageFullPath,
+        imgBase64: base64Image,
+        camId: camId,
+        streamingUrl:streamingUrl
+    };
+    var options = {
+        uri: sendRawImageuri,
+        method: 'POST',
+        json: imgJsonBody
+    };
+    console.log(sendRawImageuri);
+    request(options, function (error, response, body) {
+        console.log(body)
+        if (!error && response.statusCode == 200) {
+            console.log("Raw Image Posted"); 
+        } else {
+            console.log("Error in posting Raw Image:", error);
+            // console.log(response);
+        }
+    });
 }
 
 /**
@@ -46,18 +79,17 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
     cloudServiceTargetUrl, cloudServiceUrl, camName, userId) {
-    console.log("**SENDImageTOCloud::\n",timestamp, imageFullPath, bboxes, imageConfig,
-    cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
+    console.log("**SENDImageTOCloud::\n", timestamp, imageFullPath, bboxes, imageConfig,
+        cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
     //console.log("IMG config : ", imageConfig);
 
     //connect with cloudServiceUrl
-    var requestObj = request.post(cloudServiceUrl, function(err, res, body) {
+    var requestObj = request.post(cloudServiceUrl, function (err, res, body) {
         if (err) {
             console.log('Failed to connect to compute engine:', err);
-        }else
-        {console.log('Compute engine respond',body.result);}
+        } else { console.log('Compute engine respond', body.result); }
     });
 
     //send the image
@@ -67,7 +99,7 @@ var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, im
     form.append('targetUrl', cloudServiceTargetUrl);
     form.append('timestamp', timestamp);
     form.append('imageConfig', JSON.stringify(imageConfig));
-    form.append('userId',userId);
+    form.append('userId', userId);
 
     form.append('file',
         fs.createReadStream(imageFullPath).on('end', function () {
@@ -160,3 +192,4 @@ module.exports.sendImageCloudComputeEngine = sendImageCloudComputeEngine;
 module.exports.sendImages = sendImages;
 module.exports.rsyncInterval = rsyncInterval;
 module.exports.sendImageBase64MQTT = sendImageBase64MQTT;
+module.exports.sendImageRest = sendImageRest;

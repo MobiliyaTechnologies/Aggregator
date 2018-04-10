@@ -76,6 +76,7 @@ var openStream = function (streamingUrl, retryTime, callback) {
         }
         if (failcount == maxTries) {
             clearInterval(retryInterval);
+	    callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
     }, retryTime);

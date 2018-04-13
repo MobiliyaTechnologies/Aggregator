@@ -62,7 +62,7 @@ var videoUploading = function (req, res) {
 
     request(requestOptions)
         .on('end', () => {
-            console.log("DONE WITH UPLOAD ..!!");
+            console.log("Video Uploaded for video indexing..!!");
         });
 }
 

@@ -141,7 +141,7 @@ var topicSubscribe = function (deviceConnectionString) {
 
     client = clientFromConnectionString(deviceConnectionString);
     IOTHubListener(client);
-    client.on('errorreceived', printError);
+    client.on('errorReceived', printError);
     client.on('error', function (err) {
         console.error(err.message);
     });

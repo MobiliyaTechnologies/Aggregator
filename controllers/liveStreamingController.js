@@ -226,7 +226,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId); // cloudServiceUrl
+                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
                                 break;
 
                             default:

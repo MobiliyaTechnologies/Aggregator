@@ -26,8 +26,7 @@ var printError = function (err) {
     cb(err, null, null);
 };
 
-var IOTHubListener = function(client)
-{
+var IOTHubListener = function (client) {
     client.open(function (error) {
         if (error)
             console.log("Error in connecting..");
@@ -139,10 +138,17 @@ var IOTHubListener = function(client)
 //Subscriptions: number_of_topics:5
 var topicSubscribe = function (deviceConnectionString) {
     console.log("In iot hub subcribe", deviceConnectionString);
-    
+
     client = clientFromConnectionString(deviceConnectionString);
     IOTHubListener(client);
-    client.on('errorreceived',printError);
+    client.on('errorreceived', printError);
+    client.on('error', function (err) {
+        console.error(err.message);
+    });
+    client.on('disconnect', function () {
+        console.log("Disconnected");
+        //client.open(connectCallback);
+    });
 }
 
 module.exports.topicSubscribe = topicSubscribe;

@@ -4,11 +4,12 @@
  */
 var config = {};
 
-config.port = 3011;
+config.port = 3008;
 
-config.rawImageDirectory = './RawImages';
-config.imageTargetDirectory = './Images360Target';
-config.aggregatorName = "AggregatorLocalAnkita";
+/**
+ * Aggregator Details
+ */
+config.aggregatorName = "AggregatorClientIOTHub";
 config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
@@ -16,7 +17,36 @@ config.availability = "yes";
 config.pingInterval = 900000;   //in miliseconds(9 sec)
 
 /**
- * path to schedulerWriter python code
+ * Configurations
+ */
+config.setupType = "Cloud";     //Or onPremise
+
+/**
+ * BROKERS address
+ * mqttBroker : Aggregator and Backend communication via MQTT
+ */
+config.mqttBroker = "mqtt://52.170.196.45:1881";    //Dev
+//config.mqttBroker = "mqtt://52.170.196.45:1880";	//Client
+// config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
+
+/**
+ * Backend
+ */
+//config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
+config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
+// config.host = "http://10.9.42.211:5009"; 	                    //Local
+
+/**
+ * IOT Hub Connection string
+ */
+config.iotHub = {
+    connectionString: 'HostName=snsiothub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=/d5Vth5hCojV4+kL0oHY00eX6xqGoKr2b13CexrSwdk='
+};
+
+//_____________________Configurations ends_____________________
+
+/**
+ * Video Indexing Configurations
  */
 config.videoIndexer = {
     scheduleWriter: "./schedulerWriter.py",
@@ -27,35 +57,18 @@ config.videoIndexer = {
 };
 
 /**
- * BROKERS address
- * mqttBroker : Aggregator and Backend communication
+ * All directorires
  */
-
-//config.mqttBroker = "mqtt://52.170.196.45:1881";
-//config.mqttBroker = "mqtt://52.170.196.45:1880";	//Client
-config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
-
-/**
- * Backend
- */
-//config.host = "http://52.170.196.45:5007";
-//config.host = "https://snsbackend.mobiliya.com:5007";
-//config.host = "https://snsserverbackend.azurewebsites.net";	//client
-config.host = "http://10.9.42.211:5009"; 	//Local
-
-config.registerAggregator = config.host + "/devices/aggregators";
-
-config.iotHub = {
-    connectionString: 'HostName=snsiothub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=/d5Vth5hCojV4+kL0oHY00eX6xqGoKr2b13CexrSwdk='
-};
-/** 
- * URL of VM to send images
- */
-config.sendLiveStreamUploadURL = config.host + "/images";
-//base directory
 config.camFolder = "./Cameras";
 config.livestreamingCamFolder = "./Cameras/Cam";
+config.rawImageDirectory = './RawImages';
+config.imageTargetDirectory = './Images360Target';
 
+/**
+ * Backend APIs
+ */
+config.sendLiveStreamUploadURL = config.host + "/images";
+config.registerAggregator = config.host + "/devices/aggregators";
 config.sendRawImage = config.host + '/devices/cameras/raw';
 config.sendCheckCameraResponse = config.host + '/devices/cameras/response';
 config.cloudServiceTargetUrl = config.host + "/results";

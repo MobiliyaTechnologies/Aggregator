@@ -1,10 +1,9 @@
-var base64_encode = require('./imageProcessingController').base64_encode;
 var Rsync = require('rsync');
 var fs = require('fs');
-var config = require('../config');
 var request = require('request');
-var parseJson = require('parse-json');
 
+var config = require('../config');
+var base64_encode = require('./imageProcessingController').base64_encode;
 
 /**
  * common function to send Images using MQTT in base64 format
@@ -14,6 +13,7 @@ var parseJson = require('parse-json');
  * @param {*} imageFullPath 
  * @param {*} userId 
  * @param {*} streamingUrl 
+ * @param {*} camId
  */
 var sendImageBase64MQTT = function (imageName, format, mqttTopic,
     imageFullPath = undefined, userId = undefined, streamingUrl = undefined, camId) {
@@ -37,6 +37,15 @@ var sendImageBase64MQTT = function (imageName, format, mqttTopic,
     mqttClient.publish(mqttTopic, imgJsonBodyString);
 }
 
+/**
+ * send image using Rest
+ * @param {*} imageName 
+ * @param {*} sendRawImageuri 
+ * @param {*} imageFullPath 
+ * @param {*} userId 
+ * @param {*} streamingUrl 
+ * @param {*} camId 
+ */
 var sendImageRest = function (imageName, sendRawImageuri,
     imageFullPath = undefined, userId = undefined, streamingUrl = undefined, camId) {
     //convert to base64
@@ -49,18 +58,16 @@ var sendImageRest = function (imageName, sendRawImageuri,
         imgName: imageFullPath,
         imgBase64: base64Image,
         camId: camId,
-        streamingUrl:streamingUrl
+        streamingUrl: streamingUrl
     };
     var options = {
         uri: sendRawImageuri,
         method: 'POST',
         json: imgJsonBody
     };
-    console.log(sendRawImageuri);
     request(options, function (error, response, body) {
-        console.log(body)
         if (!error && response.statusCode == 200) {
-            console.log("Raw Image Posted"); 
+            console.log("Raw Image Posted - response", body.message);
         } else {
             console.log("Error in posting Raw Image:", error);
             // console.log(response);
@@ -79,9 +86,8 @@ var sendImageRest = function (imageName, sendRawImageuri,
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
     cloudServiceTargetUrl, cloudServiceUrl, camName, userId) {
-    console.log("**SENDImageTOCloud::\n", timestamp, imageFullPath, bboxes, imageConfig,
-        cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
-
+    // console.log("**SENDImageTOCloud::\n", timestamp, imageFullPath, bboxes, imageConfig,
+    //     cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
     //console.log("Cloud Service URL ::", cloudServiceUrl);
     //console.log("IMG config : ", imageConfig);
 
@@ -143,11 +149,10 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     //if normal image send it directly
     else {
         rsync.execute(function (error, code, cmd) {
-            //console.log("In non-mobile camera!!",cmd);
             if (error)
                 console.log("Error in rsync ::", error);
             else {
-                console.log("--Rsync done of ", imgName);
+                console.log("--Rsync: Response for image:: ", imgName);
             }
         });
     }
@@ -182,7 +187,6 @@ var sendImages = function (imgName, imgPath) {
             console.log("ERROR in posting image::" + error);
         }
         else {
-            //fs.unlinkSync(imgPath);
             console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
         }
     });

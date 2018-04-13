@@ -1,8 +1,13 @@
 var PythonShell = require('python-shell');
 var request = require("request");
 var fs = require('fs');
+
 var config = require('../config');
 
+/**
+ * videoIndexing function  : write video of given time on given time
+ * @param {*} videoSourceData 
+ */
 var videoStorage = function (videoSourceData) {
     console.log("CALL -videoStorage", videoSourceData);
     var d = new Date(videoSourceData.datetime);
@@ -11,7 +16,7 @@ var videoStorage = function (videoSourceData) {
     var pyshell = new PythonShell(config.videoIndexer.scheduleWriter);
     var videoSourceInput = [];
     videoSourceInput.push(videoSourceData.streamingUrl, videoSourceData.camId, videoSourceData.duration,
-        d.getFullYear(), d.getMonth() + 1,d.getDate(), d.getHours(),  d.getMinutes(),
+        d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes(),
         config.videoIndexer.localVideoUploadCallUrl,
         videoSourceData.callbackUrl, videoSourceData.filename);
 
@@ -25,7 +30,7 @@ var videoStorage = function (videoSourceData) {
 
     pyshell.end(function (err) {
         if (err) {
-            console.log("   Python result:: Python Error in streaming and storing!",err);
+            console.log("   Python result:: Python Error in streaming and storing!", err);
         }
         else {
             console.log("   Python result:: Video Storing Done!");
@@ -34,13 +39,13 @@ var videoStorage = function (videoSourceData) {
 }
 
 var videoUploading = function (req, res) {
-    console.log("\n\nVideo Uploading Call",req.body);
+    console.log("\n\nVideo Uploading Call", req.body);
     var filePath = req.body.filePath;
     var callbackUrl = req.body.callbackUrl;
     var fileName = req.body.fileName;
 
     var uploadVideoUrl =
-    config.videoIndexer.url + '?name=' + fileName + '&privacy='+ config.videoIndexer.privacy +'&callbackUrl=' + callbackUrl;
+        config.videoIndexer.url + '?name=' + fileName + '&privacy=' + config.videoIndexer.privacy + '&callbackUrl=' + callbackUrl;
     const readStream = fs.createReadStream(filePath);
 
     const requestOptions = {

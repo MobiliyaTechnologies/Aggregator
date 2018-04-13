@@ -2,16 +2,16 @@
 * to test device if it can stream 
 * @param {*string} message 
 */
-var config = require('../config');
 var request = require('request');
-var parseJson = require('parse-json');
+
+var config = require('../config');
 var openStream = require('../controllers/liveStreamingController').openStream;
 
 var checkCamera = function (message, callback) {
     console.log("CALL -checkCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-    var parsedJson = parseJson(message);
+    var parsedJson = JSON.parse(message);
 
     var streamingUrl = parsedJson.streamingUrl;
     var deviceType = parsedJson.deviceType;
@@ -54,7 +54,7 @@ var checkCamera = function (message, callback) {
                 request(options, function (error, response, body) {
                     console.log(body)
                     if (!error && response.statusCode == 200) {
-                        console.log("CheckCamera Response :\n", deviceResult);
+                        // console.log("CheckCamera Response :\n", deviceResult);
                         callback(null);
 
                     } else {

@@ -2,7 +2,6 @@ var config = require('../config');
 var base64_encode = require('./imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');
 
-var parseJson = require('parse-json');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
 const cv = require('opencv4nodejs');
@@ -21,7 +20,7 @@ var createCameraFolder = function (message, callback) {
     console.log("CALL -createCameraFolder");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-    var parsedJson = parseJson(message);
+    var parsedJson = JSON.parse(message);
 
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
@@ -50,6 +49,7 @@ var openStream = function (streamingUrl, retryTime, callback) {
     var failflag = 0;
     var failcount = 0;
     var maxTries = 4;
+    //webcam
     if (streamingUrl === "0")
         streamingUrl = parseInt(streamingUrl)
     console.log("**In STREAM OPENING TEST for -", streamingUrl);
@@ -76,6 +76,7 @@ var openStream = function (streamingUrl, retryTime, callback) {
         }
         if (failcount == maxTries) {
             clearInterval(retryInterval);
+            callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
     }, retryTime);
@@ -163,9 +164,11 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
         console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
 
         var interval = fps;
+        console.log("\nExpected FPS ::::::::::::::::", expectedFPS);
+
         expectedFPS = parseInt(fps / expectedFPS);
 
-        console.log("\nExpected FPS ::::::::::::::::", expectedFPS);
+        console.log("\nDivision Factor ::::::::::::::::", expectedFPS);
         //open the stream
         console.log("Open Stream responded as:: ", vCap);
 
@@ -226,7 +229,8 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId); // cloudServiceUrl
+                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, 
+                                    imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId); // cloudServiceUrl
                                 break;
 
                             default:
@@ -258,7 +262,7 @@ var stopCamera = function (message, callback) {
     console.log("CALL -stopCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-    var camIds = parseJson(message);
+    var camIds = JSON.parse(message);
     let tempArr = liveCamIntervalArray.slice();
 
     tempArr.forEach(function (cam, i) {

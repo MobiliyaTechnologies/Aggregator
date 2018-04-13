@@ -1,5 +1,4 @@
 var config = require('../config');
-var parseJson = require('parse-json');
 const cv = require('opencv4nodejs');
 var fs = require('fs');
 
@@ -15,7 +14,7 @@ var imageTransfer = require('../controllers/imageTransfer');
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    parsedJson = parseJson(message);
+    parsedJson = JSON.parse(message);
     var camId = parsedJson.cameraId;
 
     var deviceType = parsedJson.deviceType;

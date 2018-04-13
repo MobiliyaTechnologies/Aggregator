@@ -1,5 +1,4 @@
 var config = require('../config');
-var parseJson = require('parse-json');
 const cv = require('opencv4nodejs');
 var fs = require('fs');
 
@@ -15,7 +14,7 @@ var imageTransfer = require('../controllers/imageTransfer');
 var getRawImage = function (message, callback) {
     console.log("CALL -getRawImage");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    parsedJson = parseJson(message);
+    parsedJson = JSON.parse(message);
     var camId = parsedJson.cameraId;
 
     var deviceType = parsedJson.deviceType;
@@ -46,9 +45,8 @@ var getRawImage = function (message, callback) {
                     //write image to local FS
                     cv.imwrite(rawImgFullPath, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
-                    //Send Image via MQTT
-                    imageTransfer.sendImageBase64MQTT(rawImgName, "notbase64",
-                        "rawMQTT", rawImgFullPath, parsedJson.userId, streamingUrl,camId);
+                    imageTransfer.sendImageRest(rawImgName,
+                        config.sendRawImage, rawImgFullPath, parsedJson.userId, streamingUrl, camId);
                     //release the stream
                     vCap.release();
                     callback(null);

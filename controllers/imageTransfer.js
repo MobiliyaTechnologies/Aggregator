@@ -78,9 +78,9 @@ var sendImageRest = function (imageName, sendRawImageuri,
  * @param {*} cloudServiceUrl url of cloud compute engine
  */
 var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, imageConfig,
-    cloudServiceTargetUrl, cloudServiceUrl, camName, userId) {
-    console.log("**SENDImageTOCloud::\n", timestamp, imageFullPath, bboxes, imageConfig,
-        cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
+    cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId) {
+    // console.log("**SENDImageTOCloud::\n", timestamp, imageFullPath, bboxes, imageConfig,
+    //     cloudServiceTargetUrl, cloudServiceUrl, camName, userId);
 
     //console.log("Cloud Service URL ::", cloudServiceUrl);
     //console.log("IMG config : ", imageConfig);
@@ -100,7 +100,7 @@ var sendImageCloudComputeEngine = function (timestamp, imageFullPath, bboxes, im
     form.append('timestamp', timestamp);
     form.append('imageConfig', JSON.stringify(imageConfig));
     form.append('userId', userId);
-
+    form.append('camId',camId);
     form.append('file',
         fs.createReadStream(imageFullPath).on('end', function () {
             console.log("***File sent to compute engine***");

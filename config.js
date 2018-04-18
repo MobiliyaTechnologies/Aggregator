@@ -4,7 +4,7 @@
  */
 var config = {};
 
-config.port = 3008;
+config.port = 3001;
 
 /**
  * Aggregator Details
@@ -20,14 +20,6 @@ config.pingInterval = 900000;   //in miliseconds(15 minutes)
  * Configurations
  */
 config.setupType = "Cloud";     //Or onPremise
-
-/**
- * BROKERS address
- * mqttBroker : Aggregator and Backend communication via MQTT
- */
-config.mqttBroker = "mqtt://52.170.196.45:1881";    //Client
-//config.mqttBroker = "mqtt://52.170.196.45:1880";	//Dev
-//config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
 
 /**
  * Backend

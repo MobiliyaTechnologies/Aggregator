@@ -32,7 +32,7 @@ var IOTHubListener = function (client) {
             console.log("Error in connecting..");
         else {
             client.on('message', function (message) {
-                console.log('Id: ' + message.messageId + ' Body: ' + message.data);
+                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
 
                 client.complete(message, printResultFor('completed'));
 

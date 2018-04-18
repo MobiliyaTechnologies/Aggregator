@@ -33,7 +33,7 @@ var sendImageRest = function (imageName, imageFullPath, sendImageuri,
     else {
         var imgJsonBody = {
             imgName: imageName,
-            imgBase64: base64Img
+            imgBase64: base64Image
         };
     }
 
@@ -44,9 +44,14 @@ var sendImageRest = function (imageName, imageFullPath, sendImageuri,
     };
     request(options, function (error, response, body) {
         if (!error) {
-            console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+            if (userId && streamingUrl) {
+                console.log("Raw Image Posted");
+            }
+            else{
+                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+            }
         } else {
-            console.log("Error in posting Raw Image:", error);
+            console.log("Error in posting Image:", error);
             // console.log(response);
         }
     });

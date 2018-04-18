@@ -45,8 +45,8 @@ var getRawImage = function (message, callback) {
                     //write image to local FS
                     cv.imwrite(rawImgFullPath, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
 
-                    imageTransfer.sendImageRest(rawImgName,
-                        config.sendRawImage, rawImgFullPath, parsedJson.userId, streamingUrl, camId);
+                    imageTransfer.sendImageRest(rawImgName, rawImgFullPath,
+                        config.sendRawImage, camId, parsedJson.userId, streamingUrl);
                     //release the stream
                     vCap.release();
                     callback(null);

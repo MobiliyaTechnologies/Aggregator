@@ -73,12 +73,12 @@ var openStream = function (streamingUrl, retryTime, callback) {
             callback(vCap);
             clearInterval(retryInterval);
         }
-        if (failcount == maxTries) {
+        if (failcount == 10) {
             clearInterval(retryInterval);
             callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
-    }, retryTime);
+    }, 3000);
 }
 
 var calculateFPS = function (streamingUrl, callback) {
@@ -90,7 +90,7 @@ var calculateFPS = function (streamingUrl, callback) {
     openStream(streamingUrl, retryTime, function (vCap) {
         console.log("OpenStream response :: ", vCap);
         //get FPS of stream using OpenCV. If not works calculate it.
-        FPS = vCap.get(5);
+        FPS = 0;
         if (FPS > 0) {
             callback(vCap, FPS);
         }
@@ -155,7 +155,6 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
         case 'IP':
             console.log("Checking IP camera");
             streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
-
     }
 
     //calculate fps
@@ -210,7 +209,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
                         //Send images to Backend
                         if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
-                            imageTransfer.sendImageRest(imageName, imageFullPath);
+                            imageTransfer.sendImageRest(imageName, imageFullPath, config.sendLiveStreamUploadURL);
                         }
 
                         //send to respective compute engine

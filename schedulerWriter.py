@@ -1,7 +1,6 @@
 
 import sys
 import sched
-from datetime import datetime as dt
 import datetime
 import os
 import cv2
@@ -76,7 +75,6 @@ def main():
 
         r = requests.post(aggregatorUrl,timeout=30, data=json.dumps(my_data),headers=headers)
         #r.status_code
-    # lines = ["rtsp://user:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=12&subtype=0","Cam12codeCron","60"]
     lines = read_in()
     year = lines[3]
     month = lines[4]
@@ -88,16 +86,10 @@ def main():
     print 'START:', now_str()
     # Put task for today at 7am on queue. Executes immediately if past 7am
     first_time = datetime.datetime(int(year),int(month),int(date),int(hour),int(minute))
-    # first_time = dt.combine(dt.now(), daily_time)
-    # time, priority, callable, *args
 
     scheduler.enterabs(time.mktime(first_time.timetuple()), 1,
                        writeVideo, ('Running',))
     scheduler.run()
 
 if __name__ == '__main__':
-    # if "-f" in sys.argv:
-    #     main()
-    # else:
-    #with daemon.DaemonContext():
     main()

@@ -10,7 +10,6 @@ const cv = require('opencv4nodejs');
 var liveCamIntervalArray = [];
 var sendImagesToggleMap = new Map();
 
-
 /**
 * to create Cam<CamId> folder and call startStreaming
 * @param {*string} message 
@@ -76,7 +75,7 @@ var openStream = function (streamingUrl, retryTime, callback) {
         }
         if (failcount == maxTries) {
             clearInterval(retryInterval);
-	    callback(null);
+            callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
     }, retryTime);
@@ -174,7 +173,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
         if (vCap != null) {
             console.log("Stream Opened Successfully with fps ::", fps);
-            console.log("*Sending frames now!!\n``````````````````````````````````\n");
+            console.log("*Sending frames of " + camName + " now!!\n``````````````````````````````````\n");
             var countframe = 0;
             /**
             * To stream continuous frames with interval
@@ -211,9 +210,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
                         //Send images to Backend
                         if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
-                            imageTransfer.sendImages(imageName, imageFullPath, function () {
-                                sentImage = 1;
-                            });
+                            imageTransfer.sendImageRest(imageName, imageFullPath);
                         }
 
                         //send to respective compute engine
@@ -229,8 +226,8 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes, 
-                                    imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId); // cloudServiceUrl
+                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
+                                    imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
                                 break;
 
                             default:
@@ -239,7 +236,6 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         }
                     }
                     countframe = countframe + 1;
-
                 }
                 else {
                     console.log("**ERROR ::  In continuos streaming not able to stream cause Vcap is null !!")

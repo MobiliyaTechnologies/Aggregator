@@ -1,16 +1,10 @@
 var config = require('./config');
-var mqqtClient = require('./mqtt/mqttCommunication');
-var path = require('path');
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 var cors = require('cors');
-var parseJson = require('parse-json');
 const fs = require('fs');
-var exec = require('child_process').exec;
 var mkdirp = require('mkdirp');
-var request = require('request');
-var jsonSize = require('json-size');
 const fileUpload = require('express-fileupload');
 
 app.use(fileUpload());
@@ -41,12 +35,14 @@ require('./registration').register(function (result) {
 });
 
 /**
- * MOBILE AND 360 API CALL
+ * aggregator api communication
  */
 require('./routes/aggregatorRoutes')(app);
+
 /**
 * creating directories for images
 */
+//Base directory Cameras
 if (!fs.existsSync(config.camFolder)) {
     mkdirp(config.camFolder, function (err) {
         if (err) {
@@ -55,16 +51,7 @@ if (!fs.existsSync(config.camFolder)) {
             console.log("Base camera directory created :", config.camFolder);
     });
 }
-
-if (!fs.existsSync(config.imageTargetDirectory)) {
-    mkdirp(config.imageTargetDirectory, function (err) {
-        if (err) {
-            return console.error(err);
-        }
-        console.log("360 Dwarped image directory created successfully! ");
-    });
-}
-
+//Raw Image directory
 if (!fs.existsSync(config.rawImageDirectory)) {
     mkdirp(config.rawImageDirectory, function (err) {
         if (err) {
@@ -78,14 +65,6 @@ app.get('/', function (req, res) {
     console.log("/ Aggregator Responding...!!");
     res.send("Aggregator alive");
 })
-
-app.get('/cameras/live', function (req, res) {
-    var result = [];
-    liveCamIntervalArray.forEach(function (cam) {
-        result.push(cam.camId);
-    });
-    res.send(result);
-});
 
 app.get('/_ping', function (req, res) {
 

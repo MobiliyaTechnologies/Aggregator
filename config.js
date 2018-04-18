@@ -9,12 +9,12 @@ config.port = 3008;
 /**
  * Aggregator Details
  */
-config.aggregatorName = "AggregatorClientIOTHub";
+config.aggregatorName = "AggregatorCollectionModule";
 config.location = "4rth Floor Amar Apex";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
-config.pingInterval = 900000;   //in miliseconds(9 sec)
+config.pingInterval = 900000;   //in miliseconds(15 minutes)
 
 /**
  * Configurations
@@ -27,14 +27,14 @@ config.setupType = "Cloud";     //Or onPremise
  */
 config.mqttBroker = "mqtt://52.170.196.45:1881";    //Client
 //config.mqttBroker = "mqtt://52.170.196.45:1880";	//Dev
-// config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
+//config.mqttBroker = "mqtt://10.9.42.243:1889";	//Local
 
 /**
  * Backend
  */
 config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
- //config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
-// config.host = "http://10.9.42.211:5009"; 	                    //Local
+//config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
+//config.host = "http://10.9.42.211:5009"; 	                        //Local
 
 /**
  * IOT Hub Connection string
@@ -62,7 +62,6 @@ config.videoIndexer = {
 config.camFolder = "./Cameras";
 config.livestreamingCamFolder = "./Cameras/Cam";
 config.rawImageDirectory = './RawImages';
-config.imageTargetDirectory = './Images360Target';
 
 /**
  * Backend APIs

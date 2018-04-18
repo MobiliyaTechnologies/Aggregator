@@ -38,6 +38,11 @@ var videoStorage = function (videoSourceData) {
     });
 }
 
+/**
+ * Upload recorded video
+ * @param {*} req 
+ * @param {*} res 
+ */
 var videoUploading = function (req, res) {
     console.log("\n\nVideo Uploading Call", req.body);
     var filePath = req.body.filePath;

@@ -1,7 +1,7 @@
-var config = require('../config');
 const cv = require('opencv4nodejs');
 var fs = require('fs');
 
+var config = require('../config');
 var openStream = require('../controllers/liveStreamingController').openStream;
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');

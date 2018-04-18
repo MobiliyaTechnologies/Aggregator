@@ -3,16 +3,12 @@ var config = require('../config');
 var checkCamera = require('../controllers/checkCameraController').checkCamera;
 var getRawImage = require('../controllers/rawImageController').getRawImage;
 var liveStreamController = require('../controllers/liveStreamingController');
-var apiController = require('../controllers/apiController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 
 var mqtt = require('mqtt');
-var parseJson = require('parse-json');
-var client;
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
-var Message = require('azure-iot-device').Message;
 
-//Topic Names
+var client;
 
 function printResultFor(op) {
     return function printResult(err, res) {
@@ -26,13 +22,17 @@ var printError = function (err) {
     cb(err, null, null);
 };
 
+/**
+ * Receive and process messages (6 events)
+ * @param {*} client 
+ */
 var IOTHubListener = function (client) {
     client.open(function (error) {
         if (error)
             console.log("Error in connecting..");
         else {
             client.on('message', function (message) {
-                console.log('Id: ' + message.messageId + ' Body: ' + message.data);
+                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
 
                 client.complete(message, printResultFor('completed'));
 
@@ -41,7 +41,6 @@ var IOTHubListener = function (client) {
                 // message is Buffer
                 console.log("DATA RECEIVED ON TOPIC :: ", topic);
 
-                // logger.debug("Data received on topic : ",topic);
                 switch (topic) {
                     case '/':
                         {
@@ -62,7 +61,7 @@ var IOTHubListener = function (client) {
                      */
                     case "getRawImage":
                         var sendData = message.toString();
-                        var parsedJson = parseJson(sendData);
+                        var parsedJson = JSON.parse(sendData);
 
                         getRawImage(message, function (error) {
                             if (!error) {
@@ -78,7 +77,7 @@ var IOTHubListener = function (client) {
                      */
                     case "startStreaming":
                         var sendData = message.toString();
-                        var parsedJson = parseJson(sendData);
+                        var parsedJson = JSON.parse(sendData);
                         //console.log("Data to stream ::", parsedJson);
 
                         liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
@@ -97,17 +96,17 @@ var IOTHubListener = function (client) {
                         console.log("\n*Stop these cameras ::", JSON.stringify(camIds));
                         liveStreamController.stopCamera(camIds, function (error) {
                             if (!error) {
-                                console.log("MQTT==================Stopped the Streaming Cameras\n-----------------------------------\n");
+                                console.log("MQTT==================Stop Camera Done\n-----------------------------------\n");
                             }
                         });
 
                         break;
+                        s
                     /**
                      * Stop/Start sending images to backend for a specific camera
                      */
                     case "toggleSendImageFlag":
                         var toggleObj = JSON.parse(message.toString());
-                        console.log("Incoming : ", toggleObj.flag);
                         console.log("Incoming : ", toggleObj);
                         if (toggleObj.flag === 0 || toggleObj.flag === 1) {
                             liveStreamController.toggleSendImageFlag(toggleObj.camId, toggleObj.flag);
@@ -117,11 +116,11 @@ var IOTHubListener = function (client) {
                         break;
 
                     /**
-                     * video indexing
+                     * video indexing(Record video) and upload to video Indexer
                      */
                     case "videoIndexing":
                         var videoSourceData = message.toString();
-                        var parsedJson = parseJson(videoSourceData);
+                        var parsedJson = JSON.parse(videoSourceData);
                         videoIndexing(parsedJson);
                         console.log("Data sent for video recording");
                         break;
@@ -134,10 +133,12 @@ var IOTHubListener = function (client) {
     });
 }
 
-
-//Subscriptions: number_of_topics:5
+/**
+ * Connect to IOTHub
+ * @param {*} deviceConnectionString 
+ */
 var topicSubscribe = function (deviceConnectionString) {
-    console.log("In iot hub subcribe", deviceConnectionString);
+    console.log("Let's connect to IOTHub");
 
     client = clientFromConnectionString(deviceConnectionString);
     IOTHubListener(client);

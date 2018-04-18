@@ -1,12 +1,13 @@
-/**
-* to test device if it can stream 
-* @param {*string} message 
-*/
+
 var request = require('request');
 
 var config = require('../config');
 var openStream = require('../controllers/liveStreamingController').openStream;
 
+/**
+* to test device if it can stream 
+* @param {*string} message 
+*/
 var checkCamera = function (message, callback) {
     console.log("CALL -checkCamera");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -16,12 +17,12 @@ var checkCamera = function (message, callback) {
     var streamingUrl = parsedJson.streamingUrl;
     var deviceType = parsedJson.deviceType;
 
+    console.log("Device Type : ", deviceType);
     console.log("Device URL to test::", streamingUrl);
 
-    var retrytime = 1000;
+    var retrytime = 1000;   //retryTime to OpenStream
 
     //depending on the device type
-
     switch (deviceType) {
         case 'IP':
             console.log("Checking IP camera");
@@ -52,7 +53,7 @@ var checkCamera = function (message, callback) {
                     json: deviceResult
                 };
                 request(options, function (error, response, body) {
-                    console.log(body)
+                    // console.log(body);
                     if (!error && response.statusCode == 200) {
                         // console.log("CheckCamera Response :\n", deviceResult);
                         callback(null);

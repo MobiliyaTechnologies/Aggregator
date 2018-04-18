@@ -73,12 +73,12 @@ var openStream = function (streamingUrl, retryTime, callback) {
             callback(vCap);
             clearInterval(retryInterval);
         }
-        if (failcount == 10) {
+        if (failcount === maxTries) {
             clearInterval(retryInterval);
             callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
         }
-    }, 3000);
+    }, retryTime);
 }
 
 var calculateFPS = function (streamingUrl, callback) {
@@ -90,7 +90,7 @@ var calculateFPS = function (streamingUrl, callback) {
     openStream(streamingUrl, retryTime, function (vCap) {
         console.log("OpenStream response :: ", vCap);
         //get FPS of stream using OpenCV. If not works calculate it.
-        FPS = 0;
+        FPS = vCap.get(5);
         if (FPS > 0) {
             callback(vCap, FPS);
         }

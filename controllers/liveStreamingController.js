@@ -203,14 +203,14 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         //composing imagename
                         var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
                         var imageFullPath = filePath + imageName;
+                        const outBase64 = cv.imencode('.jpg', frame,[parseInt(cv.IMWRITE_JPEG_QUALITY), 50] ).toString('base64'); // Perform base64 encoding
+                        //Send images to Backend
+                        if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
+                            imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
+                        }
 
                         /**to write captured image of camera into local fs */
                         cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
-
-                        //Send images to Backend
-                        if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
-                            imageTransfer.sendImageRest(imageName, imageFullPath, config.sendLiveStreamUploadURL);
-                        }
 
                         //send to respective compute engine
                         switch (wayToCommunicate) {

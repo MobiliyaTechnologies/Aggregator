@@ -14,11 +14,9 @@ var base64_encode = require('./imageProcessingController').base64_encode;
  * @param {*} streamingUrl 
  * @param {*} camId 
  */
-var sendImageRest = function (imageName, imageFullPath, sendImageuri,
+var sendImageRest = function (imageName,sendImageuri,outBase64,
     camId, userId = undefined, streamingUrl = undefined) {
-    //convert to base64
-    base64Image = base64_encode(imageFullPath);
-    base64Image = "data:image/jpg;base64, " + base64Image;
+    base64Image = "data:image/jpg;base64, " + outBase64;
 
     if (userId && streamingUrl) {
         //Image and data          

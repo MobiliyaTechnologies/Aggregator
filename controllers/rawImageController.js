@@ -42,11 +42,10 @@ var getRawImage = function (message, callback) {
                     var raw = frame;
                     var rawImgName = camId + ".jpg";
                     var rawImgFullPath = config.rawImageDirectory + "/" + rawImgName;
-                    //write image to local FS
-                    cv.imwrite(rawImgFullPath, raw, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                    const outBase64 = cv.imencode('.jpg', frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]).toString('base64'); // Perform base64 encoding
 
-                    imageTransfer.sendImageRest(rawImgName, rawImgFullPath,
-                        config.sendRawImage, camId, parsedJson.userId, streamingUrl);
+                    imageTransfer.sendImageRest(rawImgName,
+                        config.sendRawImage, outBase64, camId, parsedJson.userId, streamingUrl);
                     //release the stream
                     vCap.release();
                     callback(null);

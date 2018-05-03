@@ -5,6 +5,7 @@ var config = require('../config');
 var openStream = require('../controllers/liveStreamingController').openStream;
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');
+var imageProcessingController = require('../controllers/imageProcessingController');
 
 /**
 * to get raw image of camera device
@@ -55,7 +56,7 @@ var getRawImage = function (message, callback) {
                 }
             });
             break;
-            
+
         case 'Mobile':
             console.log("RAW IMAGE CALLED --- ", camId);
             var rawImgName = camId + ".jpg";

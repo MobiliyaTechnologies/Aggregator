@@ -61,6 +61,16 @@ if (!fs.existsSync(config.rawImageDirectory)) {
     });
 }
 
+//Mobile camera Dwarp 
+if (!fs.existsSync(config.imageTargetDirectory)) {
+    mkdirp(config.imageTargetDirectory, function (err) {
+        if (err) {
+            return console.error(err);
+        }
+        console.log("360 Dwarped image directory created successfully! ");
+    });
+}
+
 app.get('/', function (req, res) {
     console.log("/ Aggregator Responding...!!");
     res.send("Aggregator alive");

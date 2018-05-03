@@ -18,7 +18,7 @@ var sendImageRest = function (imageName,sendImageuri,outBase64,
     camId, userId = undefined, streamingUrl = undefined) {
     base64Image = "data:image/jpg;base64, " + outBase64;
 
-    if (userId && streamingUrl) {
+    if (userId) {
         //Image and data          
         var imgJsonBody = {
             userId: userId,
@@ -42,7 +42,7 @@ var sendImageRest = function (imageName,sendImageuri,outBase64,
     };
     request(options, function (error, response, body) {
         if (!error) {
-            if (userId && streamingUrl) {
+            if (userId) {
                 console.log("Raw Image Posted");
             }
             else{

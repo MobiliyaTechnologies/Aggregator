@@ -19,11 +19,12 @@ var registry = iothub.Registry.fromConnectionString(connectionString);
 var register = function (callback) {
     serial.getSerial(function (err, value) {
         var appendIPtoName = ip.address().split(".")[3];
+        var macId = value; //change if multiple aggregators are installed on one machine
         //Aggregator information 
         var aggregatorData = {
             "name": config.aggregatorName + "_" + appendIPtoName,
             "url": config.url,
-            "macId":"test"+ value, "ipAddress": ip.address(),
+            "macId":macId, "ipAddress": ip.address(),
             "availability": config.availability,
             "location": config.location,
             "channelId": config.channelId
@@ -57,7 +58,7 @@ var register = function (callback) {
                             console.log("Got the device info\n");
                             var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                             topicSubscribe(deviceConnectionString);
-                            pingMechanismInterval(value);
+                            pingMechanismInterval(macId);
                         });
                     }
 
@@ -67,7 +68,7 @@ var register = function (callback) {
                         //console.log(' device info: ' + JSON.stringify(deviceInfo));
                         var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                         topicSubscribe(deviceConnectionString);
-                        pingMechanismInterval(value);
+                        pingMechanismInterval(macId);
                     }
                 });
                 callback(null);

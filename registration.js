@@ -4,7 +4,7 @@ var request = require('request');
 var ip = require("ip");
 
 var config = require('./config');
-var topicSubscribe = require('./mqtt/mqttCommunication').topicSubscribe;
+var topicSubscribe = require('./communication/IOTHub').topicSubscribe;
 
 //aggregatorId assigned by backend
 var aggregatorId;

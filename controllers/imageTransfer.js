@@ -46,7 +46,7 @@ var sendImageRest = function (imageName,sendImageuri,outBase64,
                 console.log("Raw Image Posted");
             }
             else{
-                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.statusCode));
+                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.message));
             }
         } else {
             console.log("Error in posting Image:", error);
@@ -136,40 +136,6 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     }
 }
 
-
-/**
- * common function to send Images using MQTT in base64 format
- * @param {*} imageName 
- * @param {*} format 
- * @param {*} mqttTopic 
- * @param {*} imageFullPath 
- * @param {*} userId 
- * @param {*} streamingUrl 
- * @param {*} camId
- */
-var sendImageBase64MQTT = function (imageName, format, mqttTopic,
-    imageFullPath = undefined, userId = undefined, streamingUrl = undefined, camId) {
-
-    if (format != "base64") {
-        //convert to base64
-        base64Image = base64_encode(imageFullPath);
-    }
-    base64Image = "data:image/jpg;base64, " + base64Image;
-
-    //Image and data          
-    var imgJsonBody = {
-        userId: userId,
-        imgName: imageFullPath,
-        imgBase64: base64Image,
-        camId: camId
-    };
-    //MQTT APPROACH
-    var imgJsonBodyString = JSON.stringify(imgJsonBody);
-    var mqttClient = require('../mqtt/mqttCommunication').mqttClient;
-    mqttClient.publish(mqttTopic, imgJsonBodyString);
-}
-
 module.exports.sendImageCloudComputeEngine = sendImageCloudComputeEngine;
 module.exports.rsyncInterval = rsyncInterval;
-module.exports.sendImageBase64MQTT = sendImageBase64MQTT;
 module.exports.sendImageRest = sendImageRest;

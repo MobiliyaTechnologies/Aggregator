@@ -28,14 +28,22 @@ var base64_encode = function (file) {
  */
 var deFishEyeImage = function (sourceImageName, sourceImageFullPath, destinationImageFolderPath,
     callback) {
+
     var destinationImageFullPath = destinationImageFolderPath + "/" + sourceImageName;
+    //console.log("Destin : :-", destinationImageFullPath);
     var command = './fisheye2pano -w 720 -e 50 -h 0,360 -f L -p 90 -c 360,360 -v -90,0 -r 360 -vp black -b black '
         + sourceImageFullPath + ' ' + destinationImageFullPath;
 
     ls = exec(command,
         function (err, stdout, stderr) {
-            console.log("-----------------------------DWARP Done of IMAGE ::" + sourceImageFullPath);
-            callback(sourceImageName, destinationImageFullPath);
+            if (err) {
+                console.log("Error in dwarping :", err);
+            } else {
+
+                console.log("-----------------------------DWARP Done of IMAGE ::" + sourceImageFullPath);
+                callback(sourceImageName, destinationImageFullPath);
+
+            }
         });
 }
 
@@ -58,6 +66,5 @@ var downloadBlob = function (blobName, imageFullPath, callback) {
 }
 
 module.exports.base64_encode = base64_encode;
-module.exports.base64ToImage = base64ToImage;
 module.exports.deFishEyeImage = deFishEyeImage;
 module.exports.downloadBlob = downloadBlob;

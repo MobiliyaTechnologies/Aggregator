@@ -1,10 +1,10 @@
 //Connect MQTT Broker
 var config = require('../config');
 var checkCamera = require('../controllers/checkCameraController').checkCamera;
-var getRawImage = require('../controllers/rawImageController').getRawImage;
+var rawImageController = require('../controllers/rawImageController');
 var liveStreamController = require('../controllers/liveStreamingController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
-
+var mobileCameraFlow = require('../controllers/mobileCameraFlow');
 var mqtt = require('mqtt');
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
@@ -31,8 +31,9 @@ var IOTHubListener = function (client) {
         if (error)
             console.log("Error in connecting..");
         else {
+            console.log("Connected to IOTHub");
             client.on('message', function (message) {
-                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
+                console.log('Id: ' + message.messageId + ' Body: ' + message.data);
 
                 client.complete(message, printResultFor('completed'));
 
@@ -63,7 +64,7 @@ var IOTHubListener = function (client) {
                         var sendData = message.toString();
                         var parsedJson = JSON.parse(sendData);
 
-                        getRawImage(message, function (error) {
+                        rawImageController.getRawImage(message, function (error) {
                             if (!error) {
                                 console.log("IOTHub==================getRawImage Topic Serving Done!!\n-----------------------------------\n");
                             }
@@ -71,9 +72,19 @@ var IOTHubListener = function (client) {
                                 console.log("**Error in GetRawImage :", error);
                         });
                         break;
+                    /**
+                     * Mobile Camera raw Image
+                     */
+                    case "mobileCameraRawImage":
+                        var sendData = message.toString();
+                        var parsedJson = JSON.parse(sendData);
+                        rawImageController.mobileCameraRawImage(parsedJson, function () {
+                            console.log("Mobile Camera Raw Image Saved..");
+                        });
+                        break;
 
                     /**
-                     * Streaming 
+                     * Camera Streaming 
                      */
                     case "startStreaming":
                         var sendData = message.toString();
@@ -101,7 +112,7 @@ var IOTHubListener = function (client) {
                         });
 
                         break;
-                        s
+
                     /**
                      * Stop/Start sending images to backend for a specific camera
                      */
@@ -123,6 +134,16 @@ var IOTHubListener = function (client) {
                         var parsedJson = JSON.parse(videoSourceData);
                         videoIndexing(parsedJson);
                         console.log("Data sent for video recording");
+                        break;
+
+                    /**
+                     * Mobile camera blob images streaming
+                     */
+                    case "mobileCameraLiveImages":
+                        var imageData = message.toString();
+                        liveStreamController.createCameraFolder(imageData, function (parsedJson, cameraFolder) {
+                            mobileCameraFlow.sendMobileCameraImages(parsedJson, cameraFolder);
+                        });
                         break;
 
                     default:

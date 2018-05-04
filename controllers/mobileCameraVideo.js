@@ -2,6 +2,7 @@ const cv = require('opencv4nodejs');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
 
+var config = require('../config');
 var liveStreamingController = require('../controllers/liveStreamingController');
 var imageTransfer = require('../controllers/imageTransfer');
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;

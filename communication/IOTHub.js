@@ -5,7 +5,6 @@ var rawImageController = require('../controllers/rawImageController');
 var liveStreamController = require('../controllers/liveStreamingController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 var mobileCameraFlow = require('../controllers/mobileCameraFlow');
-var mqtt = require('mqtt');
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
 var client;

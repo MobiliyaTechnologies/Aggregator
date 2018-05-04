@@ -5,6 +5,9 @@ var rawImageController = require('../controllers/rawImageController');
 var liveStreamController = require('../controllers/liveStreamingController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 var mobileCameraFlow = require('../controllers/mobileCameraFlow');
+var mobileCameraVideo = require('../controllers/mobileCameraVideo');
+
+var mqtt = require('mqtt');
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
 var client;
@@ -32,8 +35,7 @@ var IOTHubListener = function (client) {
         else {
             console.log("Connected to IOTHub");
             client.on('message', function (message) {
-                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
-
+                console.log('Id: ' + message.messageId + ' Body: ' + message.data);
                 client.complete(message, printResultFor('completed'));
 
                 var topic = message.messageId;
@@ -94,6 +96,8 @@ var IOTHubListener = function (client) {
                             if (parsedJson.deviceType !== "Mobile") {
                                 liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
                                 console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
+                            }else{
+                                mobileCameraVideo.streamMobileVideo(parsedJson,cameraFolder);
                             }
                         });
                         break;

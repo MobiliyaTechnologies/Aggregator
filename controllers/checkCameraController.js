@@ -55,7 +55,7 @@ var checkCamera = function (message, callback) {
                 request(options, function (error, response, body) {
                     // console.log(body);
                     if (!error && response.statusCode == 200) {
-                        // console.log("CheckCamera Response :\n", deviceResult);
+                        console.log("CheckCamera Response Posted\n", deviceResult.flag);
                         callback(null);
 
                     } else {

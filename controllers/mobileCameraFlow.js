@@ -9,7 +9,7 @@ var mkdirp = require('mkdirp');
 
 var sendMobileCameraImages = function (parsedJson, cameraFolder) {
 
-    console.log("JSON ::::::::::::", (parsedJson));
+    //console.log("JSON ::::::::::::", (parsedJson));
     var camId = parsedJson.camId;
     var detectionType = parsedJson.feature;
     // console.log("Detection Type ::", detectionType);
@@ -22,12 +22,11 @@ var sendMobileCameraImages = function (parsedJson, cameraFolder) {
     var userId = parsedJson.userId;
 
     var imageName = parsedJson.blobName;
-    // var base64Image = parsedJson.base64Image.split(" ")[1];
-    // console.log(base64Image);
+
     var filePath = cameraFolder + "/";
     var imageFullPath = filePath + imageName;
 
-    console.log("Image full path ::::::::::::", imageFullPath);
+    //console.log("Image full path ::::::::::::", imageFullPath);
     imageProcessingController.downloadBlob(imageName, imageFullPath, function () {
         if (imageType == "Mobile360") {
             var destinationImageFolderPath = cameraFolder + "Dwarped";
@@ -44,7 +43,7 @@ var sendMobileCameraImages = function (parsedJson, cameraFolder) {
             //call to dwarp
             imageProcessingController.deFishEyeImage(imageName, imageFullPath,
                 destinationImageFolderPath, function (dwarpedImageName, destinationImageFullPath) {
-                    // console.log("+++++++++++++++++++++++++++++", destinationImageFullPath);
+                    //console.log("+++++++++++++++++++++++++++++", destinationImageFullPath);
 
                     var outBase64 = base64_encode(destinationImageFullPath);
                     imageTransfer.sendImageRest(dwarpedImageName, config.sendLiveStreamUploadURL, outBase64, camId);

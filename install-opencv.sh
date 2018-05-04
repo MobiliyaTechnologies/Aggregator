@@ -16,7 +16,6 @@
 
 OPENCV_VERSION='3.4.1'
 
-
 # 1. KEEP UBUNTU OR DEBIAN UP TO DATE
 
 sudo apt-get -y update

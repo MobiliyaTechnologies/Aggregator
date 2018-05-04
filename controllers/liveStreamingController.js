@@ -289,3 +289,5 @@ module.exports.startLiveStreaming = startLiveStreaming;
 module.exports.stopCamera = stopCamera;
 module.exports.openStream = openStream;
 module.exports.toggleSendImageFlag = toggleSendImageFlag;
+module.exports.sendImagesToggleMap = sendImagesToggleMap;
+module.exports.liveCamIntervalArray = liveCamIntervalArray;

@@ -35,6 +35,15 @@ config.iotHub = {
     connectionString: 'HostName=snsiothub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=/d5Vth5hCojV4+kL0oHY00eX6xqGoKr2b13CexrSwdk='
 };
 
+/**
+ * Blob configurations
+ */
+config.blobConfiguration ={
+    containerName : 'mobileimg',
+    account : 'snsdiag148',
+    accessKey : 'BdgRGrKwfbr2nsYVHywowXK8124y1v7PwFAw9M1swcHEXOFPdn6c/D/i9hN5KqjLS78DkrtgAAn4TrPt7RHYWg=='
+}
+
 //_____________________Configurations ends_____________________
 
 /**
@@ -54,6 +63,7 @@ config.videoIndexer = {
 config.camFolder = "./Cameras";
 config.livestreamingCamFolder = "./Cameras/Cam";
 config.rawImageDirectory = './RawImages';
+config.imageTargetDirectory = './Images360Target';
 
 /**
  * Backend APIs

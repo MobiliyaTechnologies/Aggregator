@@ -5,6 +5,7 @@ var config = require('../config');
 var openStream = require('../controllers/liveStreamingController').openStream;
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');
+var imageProcessingController = require('../controllers/imageProcessingController');
 
 /**
 * to get raw image of camera device
@@ -55,9 +56,55 @@ var getRawImage = function (message, callback) {
                 }
             });
             break;
+
+        case 'Mobile':
+            console.log("RAW IMAGE CALLED --- ", camId);
+            var rawImgName = camId + ".jpg";
+            var rawImgFullPath = config.rawImageDirectory + "/" + rawImgName;
+            if (fs.existsSync(rawImgFullPath)) {
+                console.log("Found mobile camera raw image");
+                var base64Image = base64_encode(rawImgFullPath);
+                imageTransfer.sendImageRest(rawImgName,
+                    config.sendRawImage, base64Image, camId, parsedJson.userId, streamingUrl);
+            }
+            else {
+                console.log("Not found - Mobile camera raw Image for ",camId);
+            }
+
+            break;
         default:
             console.log("Device type not specified to server Raw Image!!");
     }
 }
 
+/**
+ * download blob mobile camera raw image
+ * @param {*} parsedJson 
+ * @param {*} callback 
+ */
+var mobileCameraRawImage = function (parsedJson, callback) {
+    // console.log("----+++++++RAW IMAGE MOBILE CALL ",parsedJson);
+    var camId = parsedJson.camId;
+    var rawImgName = camId + ".jpg";
+    var blobName = parsedJson.blobName;
+    var imageType = parsedJson.imageType;
+    var rawImgFullPath = config.rawImageDirectory + "/" + rawImgName;
+
+    imageProcessingController.downloadBlob(blobName, rawImgFullPath, function () {
+        if (imageType == "Mobile360") {
+            console.log("Raw Image dwarping needed");
+            //call to dwarp
+            imageProcessingController.deFishEyeImage(blobName, rawImgFullPath, config.rawImageDirectory,
+                function (dwarpedImageName, destinationImageFullPath) {
+                    console.log("**Raw image of mobile 360 saved - ", rawImgFullPath);
+                    callback(null);
+                });
+        }
+        else {
+            callback(null);
+        }
+    });
+}
+
+module.exports.mobileCameraRawImage = mobileCameraRawImage;
 module.exports.getRawImage = getRawImage; 

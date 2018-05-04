@@ -65,6 +65,28 @@ var checkCamera = function (message, callback) {
 
             });
             break;
+
+        case 'Mobile':
+            console.log("Checking Mobile camera -");
+            var deviceResult = {
+                "userId": parsedJson.userId,
+                "camdetails": parsedJson,
+                "flag": 1
+            };
+            var options = {
+                uri: config.sendCheckCameraResponse,
+                method: 'POST',
+                json: deviceResult
+            };
+            request(options, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log("Mobile CheckCamera Response posted");
+                    callback(null);
+                } else {
+                    console.log("Error in posting Raw Image:", error);
+                }
+            });
+            break;
     }
 }
 

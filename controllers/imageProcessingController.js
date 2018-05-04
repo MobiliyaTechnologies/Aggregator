@@ -58,6 +58,5 @@ var downloadBlob = function (blobName, imageFullPath, callback) {
 }
 
 module.exports.base64_encode = base64_encode;
-module.exports.base64ToImage = base64ToImage;
 module.exports.deFishEyeImage = deFishEyeImage;
 module.exports.downloadBlob = downloadBlob;

@@ -1,7 +1,11 @@
 const cv = require('opencv4nodejs');
+var fs = require('fs');
+var mkdirp = require('mkdirp');
+
 var liveStreamingController = require('../controllers/liveStreamingController');
 var imageTransfer = require('../controllers/imageTransfer');
 var base64_encode = require('../controllers/imageProcessingController').base64_encode;
+var imageProcessingController = require('../controllers/imageProcessingController');
 
 var streamMobileVideo = function (parsedJson,cameraFolder) {
     console.log("CALL -startLiveStreamingMobileVideo");
@@ -49,7 +53,7 @@ var streamMobileVideo = function (parsedJson,cameraFolder) {
     var vCap;
 
     //calculate fps
-    calculateFPS(streamingUrl, function (vCap, fps) {
+    liveStreamingController.calculateFPS(streamingUrl, function (vCap, fps) {
         console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
 
         var interval = fps;

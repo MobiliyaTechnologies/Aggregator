@@ -34,7 +34,7 @@ var IOTHubListener = function (client) {
             console.log("Error in connecting..");
         else {
             client.on('message', function (message) {
-                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
+                console.log('Id: ' + message.messageId + ' Body: ' + message.data);
                 client.complete(message, printResultFor('completed'));
 
                 var topic = message.messageId;
@@ -92,12 +92,12 @@ var IOTHubListener = function (client) {
                         //console.log("Data to stream ::", parsedJson);
 
                         liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
-                            if (parsedJson.deviceType !== "Mobile") {
-                                liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
-                                console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
-                            }else{
+                            // if (parsedJson.deviceType !== "Mobile") {
+                            //     liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
+                            //     console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
+                            // }else{
                                 mobileCameraVideo.streamMobileVideo(parsedJson,cameraFolder);
-                            }
+                            // }
                         });
                         break;
 

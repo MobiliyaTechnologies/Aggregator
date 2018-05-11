@@ -14,7 +14,7 @@ var base64_encode = require('./imageProcessingController').base64_encode;
  * @param {*} streamingUrl 
  * @param {*} camId 
  */
-var sendImageRest = function (imageName,sendImageuri,outBase64,
+var sendImageRest = function (imageName, sendImageuri, outBase64,
     camId, userId = undefined, streamingUrl = undefined) {
     base64Image = "data:image/jpg;base64, " + outBase64;
 
@@ -45,7 +45,7 @@ var sendImageRest = function (imageName,sendImageuri,outBase64,
             if (userId) {
                 console.log("Raw Image Posted");
             }
-            else{
+            else {
                 console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.message));
             }
         } else {
@@ -136,6 +136,23 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
     }
 }
 
+var sendFaceResult = function (jsonData, uploadResultsURL) {
+    var options = {
+        uri: uploadResultsURL,
+        method: 'POST',
+        json: jsonData
+    };
+    request(options, function (error, response, body) {
+        if (!error) {
+            console.log("++BACKEND: Response for Face Result::  => " + JSON.stringify(body.message));
+        } else {
+            console.log("Error in posting FaceREsult:", error);
+            // console.log(response);
+        }
+    });
+}
+
 module.exports.sendImageCloudComputeEngine = sendImageCloudComputeEngine;
 module.exports.rsyncInterval = rsyncInterval;
 module.exports.sendImageRest = sendImageRest;
+module.exports.sendFaceResult = sendFaceResult;

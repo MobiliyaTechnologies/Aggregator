@@ -53,7 +53,7 @@ config.videoIndexer = {
     scheduleWriter: "./schedulerWriter.py",
     url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
     subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
-    privacy: "Public",
+    privacy: "Private",
     localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading'
 };
 

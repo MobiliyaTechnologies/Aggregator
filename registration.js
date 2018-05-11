@@ -22,7 +22,7 @@ var register = function (callback) {
         var macId = value; //change if multiple aggregators are installed on one machine
         //Aggregator information 
         var aggregatorData = {
-            "name": config.aggregatorName + "_" + appendIPtoName,
+            "name": config.aggregatorName,
             "url": config.url,
             "macId":macId, "ipAddress": ip.address(),
             "availability": config.availability,

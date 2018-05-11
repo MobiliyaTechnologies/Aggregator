@@ -5,6 +5,7 @@ var imageTransfer = require('../controllers/imageTransfer');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
 const cv = require('opencv4nodejs');
+const classifier = new cv.CascadeClassifier(cv.HAAR_FRONTALFACE_ALT2);
 
 //to keep track of live cameras
 var liveCamIntervalArray = [];
@@ -151,12 +152,15 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;
 
+
+
     switch (deviceType) {
         case 'IP':
             console.log("Checking IP camera");
             streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
     }
 
+    var faceCountZero = 0;
     //calculate fps
     calculateFPS(streamingUrl, function (vCap, fps) {
         console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
@@ -203,7 +207,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         //composing imagename
                         var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
                         var imageFullPath = filePath + imageName;
-                        const outBase64 = cv.imencode('.jpg', frame,[parseInt(cv.IMWRITE_JPEG_QUALITY), 50] ).toString('base64'); // Perform base64 encoding
+                        const outBase64 = cv.imencode('.jpg', frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]).toString('base64'); // Perform base64 encoding
                         //Send images to Backend
                         if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
                             imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
@@ -225,14 +229,34 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
-                                imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
-                                    imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
+                                if (detectionType == "faceRecognition") {
+                                    const image = frame;
+                                    // detect faces
+                                    const { objects, numDetections } = classifier.detectMultiScale(image.bgrToGray());
+                                    console.log('faceRects:', objects);
+                                    console.log('confidences:', numDetections);
+                                    var max = Math.max.apply(null, numDetections)
+                                    if (!objects.length || max<5) {
+                                        faceCountZero = faceCountZero +1;
+                                        console.log('No faces detected--------------->', faceCountZero);
+                                        var faceResult = { imageName: imageName,
+                                            bboxResults: [],totalCount: 0,deviceName: camName,timestamp: timestamp,
+                                            feature: detectionType,
+                                            userId: userId,camId: camId,
+                                            imageWidth: imageConfig.ImageWidth ,imageHeight : imageConfig.imageHeight }
+                                        imageTransfer.sendFaceResult(faceResult, config.cloudServiceTargetUrl);
+                                    } else {
+                                        imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
+                                            imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId);
+                                    }
+                                }
                                 break;
 
                             default:
                                 console.log("Warning : Default Case executed ( specified way of communication not available:-  " + wayToCommunicate
                                     + " not served yet)!");
                         }
+                        delete frame;
                     }
                     countframe = countframe + 1;
                 }

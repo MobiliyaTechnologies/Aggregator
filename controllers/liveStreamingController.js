@@ -240,7 +240,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                         faceCountZero = faceCountZero +1;
                                         console.log('No faces detected--------------->', faceCountZero);
                                         var faceResult = { imageName: imageName,
-                                            bboxResults: [],totalCount: 14,deviceName: camName,timestamp: timestamp,
+                                            bboxResults: [],totalCount: 0,deviceName: camName,timestamp: timestamp,
                                             feature: detectionType,
                                             userId: userId,camId: camId,
                                             imageWidth: imageConfig.ImageWidth ,imageHeight : imageConfig.imageHeight }

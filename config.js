@@ -54,7 +54,9 @@ config.videoIndexer = {
     url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
     subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
     privacy: "Private",
-    localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading'
+    localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading',
+    containerName : 'videoindexer',
+    containerUrl : 'https://snsdiag148.blob.core.windows.net/videoindexer/'
 };
 
 /**

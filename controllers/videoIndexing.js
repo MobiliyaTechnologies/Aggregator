@@ -19,7 +19,7 @@ var videoStorage = function (videoSourceData) {
         urlVideoIndexer(videoSourceData);
     } else {
         if (videoSourceData.record) {
-            videoSourceData.callbackUrl = config.sendBlobUplaodStatus;
+            videoSourceData.callbackUrl = config.sendBlobUploadStatus;
         }else{
             videoSourceData.videoId = null;
         }

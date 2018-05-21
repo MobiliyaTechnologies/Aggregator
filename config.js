@@ -24,9 +24,9 @@ config.setupType = "Cloud";     //Or onPremise
 /**
  * Backend
  */
-config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
-//config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
-//config.host = "http://10.9.42.211:5009"; 	                        //Local
+//config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
+config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
+//config.host = "http://10.9.42.211:5008"; 	                        //Local
 
 /**
  * IOT Hub Connection string
@@ -74,7 +74,8 @@ config.sendLiveStreamUploadURL = config.host + "/images";
 config.registerAggregator = config.host + "/devices/aggregators";
 config.sendRawImage = config.host + '/devices/cameras/raw';
 config.sendCheckCameraResponse = config.host + '/devices/cameras/response';
-config.cloudServiceTargetUrl = config.host + "/results";
+config.cloudServiceTargetUrl = config.host + '/results';
+config.sendBlobUploadStatus = config.host + '/devices/videos/retention';
 
 config.logger = {
     "service": "AS",

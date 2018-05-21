@@ -135,6 +135,18 @@ var IOTHubListener = function (client) {
                     case "videoIndexing":
                         var videoSourceData = message.toString();
                         var parsedJson = JSON.parse(videoSourceData);
+                        parsedJson.record = false;
+                        videoIndexing(parsedJson);
+                        console.log("Data sent for video recording");
+                        break;
+
+                    /**
+                     * video indexing(Record video) and upload to video Indexer
+                     */
+                    case "uploadVideo":
+                        var videoSourceData = message.toString();
+                        var parsedJson = JSON.parse(videoSourceData);
+                        parsedJson.record = true;
                         videoIndexing(parsedJson);
                         console.log("Data sent for video recording");
                         break;

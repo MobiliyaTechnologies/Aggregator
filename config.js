@@ -24,9 +24,9 @@ config.setupType = "Cloud";     //Or onPremise
 /**
  * Backend
  */
-config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
-//config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
-//config.host = "http://10.9.42.211:5009"; 	                        //Local
+//config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
+config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
+//config.host = "http://10.9.42.211:5008"; 	                        //Local
 
 /**
  * IOT Hub Connection string
@@ -54,7 +54,9 @@ config.videoIndexer = {
     url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
     subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
     privacy: "Private",
-    localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading'
+    localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading',
+    containerName : 'videoindexer',
+    containerUrl : 'https://snsdiag148.blob.core.windows.net/videoindexer/'
 };
 
 /**
@@ -72,7 +74,8 @@ config.sendLiveStreamUploadURL = config.host + "/images";
 config.registerAggregator = config.host + "/devices/aggregators";
 config.sendRawImage = config.host + '/devices/cameras/raw';
 config.sendCheckCameraResponse = config.host + '/devices/cameras/response';
-config.cloudServiceTargetUrl = config.host + "/results";
+config.cloudServiceTargetUrl = config.host + '/results';
+config.sendBlobUploadStatus = config.host + '/devices/videos/retention';
 
 config.logger = {
     "service": "AS",

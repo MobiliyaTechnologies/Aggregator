@@ -46,7 +46,7 @@ var sendImageRest = function (imageName, sendImageuri, outBase64,
                 console.log("Raw Image Posted");
             }
             else {
-                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body.message));
+                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body));
             }
         } else {
             console.log("Error in posting Image:", error);

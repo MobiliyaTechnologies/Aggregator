@@ -27,7 +27,7 @@ def main():
         camId = lines[1]
         duration = int(lines[2])
         aggregatorUrl = lines[8]
-
+        record = lines[11]
         timestamp =  str(int(round(time.time() * 1000)))
         fileName = lines[10]
         FILE_OUTPUT = "./"+ fileName+'.avi'
@@ -70,7 +70,7 @@ def main():
         out.release()
 
         headers = {'content-type': 'application/json'}
-        my_data = {"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9]}
+        my_data = {"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9], "record": record, "videoId":lines[12]}
 
         # get_data = f.post(URL, )
 

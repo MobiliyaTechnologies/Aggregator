@@ -60,6 +60,12 @@ var downloadBlob = function (blobName, imageFullPath, callback) {
             console.log("Error");
         } else {
             // console.log({ message: `Download of '${blobName}' complete` });
+            blobService.deleteBlobIfExists(containerName, blobName,
+                function (error, result) {
+                    if (error) { 
+                        console.log("Error in deleting blob - ",error);
+                    } 
+                });
             callback();
         }
     });

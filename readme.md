@@ -31,6 +31,9 @@ $ node aggregatorServer.js
 ## Limitations
 - Camera streaming URL should be known and tested before passing as input to Aggregator.
 
+## Tested video sources
+- Recorded videos, rtsp streaming url of CPPlus DVR, rtsp streaming url of onvif Sricam IP camera, Logitech webcam.
+
 ## License
 
 [MIT](#)

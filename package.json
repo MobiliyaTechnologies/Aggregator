@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "forever start aggregatorServer.js",
     "stop": "forever stop aggregatorServer.js",
-    "list": "forever list"
+    "list": "forever list",
+    "pythonPackages": "pip install simplejson requests"
   },
   "repository": {
     "type": "git",
@@ -26,7 +27,6 @@
     "express-fileupload": "^0.4.0",
     "ip": "^1.1.5",
     "mkdirp": "^0.5.1",
-    "mqtt": "^2.14.0",
     "node-serial-key": "0.0.3",
     "opencv4nodejs": "^2.26.1",
     "python-shell": "^0.4.0",

@@ -7,7 +7,6 @@ var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 var mobileCameraFlow = require('../controllers/mobileCameraFlow');
 var mobileCameraVideo = require('../controllers/mobileCameraVideo');
 
-var mqtt = require('mqtt');
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
 var client;

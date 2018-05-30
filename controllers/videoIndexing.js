@@ -118,6 +118,7 @@ var videoUploadingToBlob = function (req) {
 var videoUploading = function (req, res) {
     console.log("Video recording done for video - ",req.body.fileName);
     console.log("\n\nVideo Uploading Call", req.body);
+    res.end("done");
     var filePath = req.body.filePath;
     var callbackUrl = req.body.callbackUrl;
     var fileName = req.body.fileName;

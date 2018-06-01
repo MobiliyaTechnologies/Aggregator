@@ -49,10 +49,11 @@ def main():
         # Define the codec and create VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(FILE_OUTPUT,fourcc, 20.0, (int(width),int(height)))
-        # if cap.isOpened():
-        #     print "cap opened"
+        if cap.isOpened():
+             print "cap opened"
+        else:
+            exit(0)
         t_end = time.time() + duration * 60
-        # startTime = time.time()
         while time.time() < t_end:
                 if cap.isOpened():
                     # Capture frame-by-frame
@@ -62,20 +63,14 @@ def main():
                         out.write(frame)
                     else:
                         break
-                # if startTime + duration < time.time():
-                #     break
-
         # When everything done, release the capture
         cap.release()
         out.release()
 
         headers = {'content-type': 'application/json'}
-        my_data = {"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9], "record": record, "videoId":lines[12]}
-
-        # get_data = f.post(URL, )
+        my_data = {"fileName": fileName, "filePath":FILE_OUTPUT, "callbackUrl" :lines[9]}
 
         r = requests.post(aggregatorUrl,timeout=30, data=json.dumps(my_data),headers=headers)
-        #r.status_code
     lines = read_in()
     year = lines[3]
     month = lines[4]
@@ -84,8 +79,6 @@ def main():
     minute = lines[7]
     # Build a scheduler object that will look at absolute times
     scheduler = sched.scheduler(time.time, time.sleep)
-    print 'START:', now_str()
-    # Put task for today at 7am on queue. Executes immediately if past 7am
     first_time = datetime.datetime(int(year),int(month),int(date),int(hour),int(minute))
 
     scheduler.enterabs(time.mktime(first_time.timetuple()), 1,

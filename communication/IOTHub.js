@@ -6,8 +6,8 @@ var liveStreamController = require('../controllers/liveStreamingController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 var mobileCameraFlow = require('../controllers/mobileCameraFlow');
 var mobileCameraVideo = require('../controllers/mobileCameraVideo');
+var videoRetention = require('../controllers/videoRetention').videoRetentionRecording;
 
-var mqtt = require('mqtt');
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
 var client;
@@ -100,6 +100,9 @@ var IOTHubListener = function (client) {
                                 mobileCameraVideo.streamMobileVideo(parsedJson,cameraFolder);
                             }
                         });
+                        if(parsedJson.videoRetentionFlag){
+                            videoRetention(parsedJson);
+                        }
                         break;
 
                     /**
@@ -143,13 +146,13 @@ var IOTHubListener = function (client) {
                     /**
                      * video indexing(Record video) and upload to video Indexer
                      */
-                    case "uploadVideo":
-                        var videoSourceData = message.toString();
-                        var parsedJson = JSON.parse(videoSourceData);
-                        parsedJson.record = true;
-                        videoIndexing(parsedJson);
-                        console.log("Data sent for video recording");
-                        break;
+                    // case "uploadVideo":
+                    //     var videoSourceData = message.toString();
+                    //     var parsedJson = JSON.parse(videoSourceData);
+                    //     parsedJson.record = true;
+                    //     videoIndexing(parsedJson);
+                    //     console.log("Data sent for video recording");
+                    //     break;
 
                     /**
                      * Mobile camera blob images streaming

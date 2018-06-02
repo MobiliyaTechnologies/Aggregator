@@ -11,26 +11,14 @@ var containerName = config.videoIndexer.containerName;
 
 var videoMap = new Map();
 
-// videoSourceData = {
-//     "streamingUrl": "rtsp://komal:AgreeYa@114.143.6.99:554/cam/realmonitor?channel=1&subtype=0",
-//     "camId": "12",
-//     "retentionPeriod": 1,
-//     "deviceName":"Cam1",
-//     "date": '2018-6-1',
-//     "duration": '15:41 - 15:51',
-//     "fileName": '12_34.avi',
-//     "filePath": './cam10-face-2.1.avi',
-//     "videoUrl": 'https://snsdiag148.blob.core.windows.net/videoindexer/12_33.avi' 
-// }
-// videoMap.set("12",videoSourceData);
-
 var getVideoData = function (req, res) {
-    console.log("Video Data - ", req.body.camId);
+    //console.log("Video Data - ", req.body.camId);
     res.end("done");
     data = videoMap.get(req.body.camId);
-    console.log("From map -",data);
-    
+    //console.log("From map -", data);
+
     if (data.filePath) {
+        data.uploadedFlag = true;
         retentionVideoUploadToBlob(data, function (videoUrl) {
             if (videoUrl) {
                 data.videoUrl = videoUrl;
@@ -51,8 +39,10 @@ var getVideoData = function (req, res) {
             }
         });
     }
+    data.uploadedFlag = false;
     videoData = Object.assign(data, req.body);
-    videoMap.set(videoSourceData.camId, videoData);
+    videoMap.set(req.body.camId, videoData);
+    //console.log("Newly added - ", videoMap);
 }
 
 var videoRetentionRecording = function (videoSourceData) {
@@ -67,10 +57,12 @@ var videoRetentionRecording = function (videoSourceData) {
         "camId": videoSourceData.camId,
         "deviceName": videoSourceData.deviceName,
         "retentionPeriod": videoSourceData.retentionPeriod,
+        "uploadedFlag": false,
+        "pid": pyshell.childProcess.pid
     }
     videoMap.set(videoSourceData.camId, uploadedVideoData);
-    console.log("Updated --", videoMap);
-    
+    // console.log("Updated --", videoMap);
+
     pyshell.send(videoToStream);
     pyshell.on('message', function (message) {
         console.log(message);
@@ -86,9 +78,9 @@ var videoRetentionRecording = function (videoSourceData) {
     });
 }
 
-var retentionVideoUploadToBlob = function (videoDetails,callback) {
+var retentionVideoUploadToBlob = function (videoDetails, callback) {
     var filePath = videoDetails.filePath;
-    console.log(filePath);
+    // console.log(filePath);
     var blobName = videoDetails.fileName;
     var videoUrl = config.videoIndexer.containerUrl + blobName;
 
@@ -108,28 +100,40 @@ var retentionVideoUploadToBlob = function (videoDetails,callback) {
 var stopRetention = function (camId) {
     data = videoMap.get(camId);
 
-    if (data.filePath) {
-        retentionVideoUploadToBlob(data, function (videoUrl) {
-            if (videoUrl) {
-                data.videoUrl = videoUrl;
-                var options = {
-                    uri: config.sendBlobUploadStatus,
-                    method: 'POST',
-                    json: data
-                };
-                console.log(data);
-                request(options, function (error, response, body) {
-                    console.log(body);
-                    if (!error) {
-                        console.log("Video recording done response posted");
-                    } else {
-                        console.log("Error in posting Video recording done response:", error);
-                    }
-                });
-            }
-        });
+    if (data) {
+        console.log("Stoping Video Retention of camera -", camId);
+        videoMap.delete(camId);
+        try {
+            process.kill(data.pid);
+        } catch (e) {
+            console.log("Process not found!");
+        }
+        if (data.filePath && !(data.uploadedFlag)) {
+            retentionVideoUploadToBlob(data, function (videoUrl) {
+                if (videoUrl) {
+                    data.videoUrl = videoUrl;
+                    var options = {
+                        uri: config.sendBlobUploadStatus,
+                        method: 'POST',
+                        json: data
+                    };
+                    console.log(data);
+                    request(options, function (error, response, body) {
+                        console.log(body);
+                        if (!error) {
+                            console.log("Video recording done response posted");
+                        } else {
+                            console.log("Error in posting Video recording done response:", error);
+                        }
+                    });
+                }
+            });
+        }
+    } else {
+        console.log("Camera is not retended - ", camId);
     }
 }
 
 module.exports.getVideoData = getVideoData;
 module.exports.videoRetentionRecording = videoRetentionRecording;
+module.exports.stopRetention = stopRetention;

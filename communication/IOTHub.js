@@ -6,7 +6,7 @@ var liveStreamController = require('../controllers/liveStreamingController');
 var videoIndexing = require('../controllers/videoIndexing').videoStorage;
 var mobileCameraFlow = require('../controllers/mobileCameraFlow');
 var mobileCameraVideo = require('../controllers/mobileCameraVideo');
-var videoRetention = require('../controllers/videoRetention').videoRetentionRecording;
+var videoRetention = require('../controllers/videoRetention');
 
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 
@@ -90,7 +90,7 @@ var IOTHubListener = function (client) {
                     case "startStreaming":
                         var sendData = message.toString();
                         var parsedJson = JSON.parse(sendData);
-                        //console.log("Data to stream ::", parsedJson);
+                        console.log("Data to stream ::", parsedJson);
 
                         liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
                             if (parsedJson.deviceType !== "Mobile") {
@@ -100,8 +100,8 @@ var IOTHubListener = function (client) {
                                 mobileCameraVideo.streamMobileVideo(parsedJson,cameraFolder);
                             }
                         });
-                        if(parsedJson.videoRetentionFlag){
-                            videoRetention(parsedJson);
+                        if(parsedJson.retentionPeriod){
+                            videoRetention.videoRetentionRecording(parsedJson);
                         }
                         break;
 
@@ -116,7 +116,8 @@ var IOTHubListener = function (client) {
                                 console.log("MQTT==================Stop Camera Done\n-----------------------------------\n");
                             }
                         });
-
+                        var cam = JSON.parse(message);
+                        videoRetention.stopRetention(cam[0]);
                         break;
 
                     /**
@@ -142,17 +143,6 @@ var IOTHubListener = function (client) {
                         videoIndexing(parsedJson);
                         console.log("Data sent for video recording");
                         break;
-
-                    /**
-                     * video indexing(Record video) and upload to video Indexer
-                     */
-                    // case "uploadVideo":
-                    //     var videoSourceData = message.toString();
-                    //     var parsedJson = JSON.parse(videoSourceData);
-                    //     parsedJson.record = true;
-                    //     videoIndexing(parsedJson);
-                    //     console.log("Data sent for video recording");
-                    //     break;
 
                     /**
                      * Mobile camera blob images streaming

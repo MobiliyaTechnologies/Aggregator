@@ -21,7 +21,7 @@ var port = config.port;
 
 //Create Containers for mobileImages and videoRetention
 var blobService = storage.createBlobService(config.blobConfiguration.account, config.blobConfiguration.accessKey);
-var mobileImagesContainerName = config.videoIndexer.containerName;
+var mobileImagesContainerName = config.blobConfiguration.containerName;
 var videoIndexerContainerName = config.videoIndexer.containerName;
 
 const createContainer = function(containerName)  {

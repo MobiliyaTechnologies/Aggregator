@@ -17,61 +17,52 @@ config.availability = "yes";
 config.pingInterval = 900000;   //in miliseconds(15 minutes)
 
 /**
- * Configurations
- */
-config.setupType = "Cloud";     //Or onPremise
-
-/**
  * Backend
  */
-//config.host = "https://snsserverbackend.azurewebsites.net";	        //Client
-config.host = "https://snsserverdevbackend.azurewebsites.net";	//Dev
-//config.host = "http://10.9.42.211:5008"; 	                        //Local
-
+config.host = '<backendUrl>'
 /**
  * IOT Hub Connection string
  */
 config.iotHub = {
-    connectionString: 'HostName=snsiothub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=/d5Vth5hCojV4+kL0oHY00eX6xqGoKr2b13CexrSwdk='
+    connectionString: '<IOTHubConnectionString>'
 };
 
 /**
  * Blob configurations
  */
-config.blobConfiguration ={
-    containerName : 'mobileimg',
-    account : 'snsdiag148',
-    accessKey : 'BdgRGrKwfbr2nsYVHywowXK8124y1v7PwFAw9M1swcHEXOFPdn6c/D/i9hN5KqjLS78DkrtgAAn4TrPt7RHYWg=='
+config.blobConfiguration = {
+    containerName: 'mobileimg',
+    account: '<storageAccountName>',
+    accessKey: '<storageAccountAccessKey>'
 }
-
-//_____________________Configurations ends_____________________
 
 /**
  * Video Indexing Configurations
  */
 config.videoIndexer = {
-    scheduleWriter: "./schedulerWriter.py",
-    url: "https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns",
-    subscriptionKey: "fb1edaf45a6b48abb38ae4fdbe3f6d1a",
-    privacy: "Private",
+    scheduleWriter: './schedulerWriter.py',
+    url: 'https://videobreakdown.azure-api.net/Breakdowns/Api/Partner/Breakdowns',
+    subscriptionKey: '<videoIndexingSubscriptionKey>',
+    containerName: 'videoindexer',
+    privacy: 'Private',
     localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading',
-    containerName : 'videoindexer',
-    containerUrl : 'https://snsdiag148.blob.core.windows.net/videoindexer/'
+    containerUrl: 'https://' + config.blobConfiguration.account + '.blob.core.windows.net/videoindexer/'
 };
+//_____________________Configurations ends_____________________
 
 /**
  * All directorires
  */
-config.camFolder = "./Cameras";
-config.livestreamingCamFolder = "./Cameras/Cam";
+config.camFolder = './Cameras';
+config.livestreamingCamFolder = './Cameras/Cam';
 config.rawImageDirectory = './RawImages';
 config.imageTargetDirectory = './Images360Target';
 
 /**
  * Backend APIs
  */
-config.sendLiveStreamUploadURL = config.host + "/images";
-config.registerAggregator = config.host + "/devices/aggregators";
+config.sendLiveStreamUploadURL = config.host + '/images';
+config.registerAggregator = config.host + '/devices/aggregators';
 config.sendRawImage = config.host + '/devices/cameras/raw';
 config.sendCheckCameraResponse = config.host + '/devices/cameras/response';
 config.cloudServiceTargetUrl = config.host + '/results';

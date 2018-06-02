@@ -6,6 +6,9 @@ var cors = require('cors');
 const fs = require('fs');
 var mkdirp = require('mkdirp');
 const fileUpload = require('express-fileupload');
+const storage = require('azure-storage');
+
+var config = require('./config');
 
 app.use(fileUpload());
 
@@ -15,6 +18,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 var port = config.port;
+
+//Create Containers for mobileImages and videoRetention
+var blobService = storage.createBlobService(config.blobConfiguration.account, config.blobConfiguration.accessKey);
+var mobileImagesContainerName = config.blobConfiguration.containerName;
+var videoIndexerContainerName = config.videoIndexer.containerName;
+
+const createContainer = function(containerName)  {
+        blobService.createContainerIfNotExists(containerName, { publicAccessLevel: 'container' }, function(err) {
+            if(err) {
+                console.log("Error in creating blob -",err);
+            } else {
+                console.log("Created container - ",containerName);
+            }
+        });
+}
+
+createContainer(mobileImagesContainerName);
+createContainer(videoIndexerContainerName);
 
 console.log("\n----------------=========PROJECT HEIMDALL=========----------------\n");
 console.log("\n		Name : ",config.aggregatorName);

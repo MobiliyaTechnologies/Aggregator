@@ -1,4 +1,3 @@
-
 /**
  * For Aggregator Code
  */
@@ -49,6 +48,10 @@ config.videoIndexer = {
     containerUrl: 'https://' + config.blobConfiguration.account + '.blob.core.windows.net/videoindexer/'
 };
 //_____________________Configurations ends_____________________
+
+config.videoRetention = {
+    localVideoUploadCallUrl: 'http://localhost:'+ config.port +'/videoRetention'
+}
 
 /**
  * All directorires

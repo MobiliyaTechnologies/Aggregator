@@ -32,7 +32,7 @@ var getVideoData = function (req, res) {
                 request(options, function (error, response, body) {
                     console.log(body);
                     if (!error) {
-                        console.log("Video recording done response posted", data.filePath);
+                        console.log("\n\n***Video recording done response posted - "+ data.filePath + " \n\n");
                         // fs.unlink(data.filePath);
                     } else {
                         console.log("Error in posting Video recording done response:", error);
@@ -48,6 +48,7 @@ var getVideoData = function (req, res) {
 }
 
 var videoRetentionRecording = function (videoSourceData) {
+    console.log("Video Retention started for  ::" + videoSourceData.camId);
     switch (videoSourceData.deviceType) {
         case 'IP':
             console.log("Checking IP camera");
@@ -63,7 +64,7 @@ var videoRetentionRecording = function (videoSourceData) {
 
     var pyshell = new PythonShell("videoRetention.py");
     var videoToStream = JSON.stringify(videoSourceInput);
-    // console.log("VideoData to stream ::" + videoToStream);
+   
 
     uploadedVideoData = {
         "camId": videoSourceData.camId,
@@ -93,13 +94,13 @@ var videoRetentionRecording = function (videoSourceData) {
 
 var retentionVideoUploadToBlob = function (videoDetails, callback) {
     var filePath = videoDetails.filePath;
-    console.log(filePath);
+    // console.log(filePath);
     var blobName = videoDetails.fileName;
     var videoUrl = config.videoIndexer.containerUrl + blobName;
     blobService.createBlockBlobFromLocalFile(containerName, blobName, filePath,
         function (error, result, response) {
             if (!error) {
-                console.log("Blob upload Success - VideoUrl", videoUrl);
+                console.log("\n\n***Blob upload Success - VideoUrl- "+ videoUrl+ "\n\n");
                 callback(videoUrl);
             } else {
                 console.log("Couldnt upload video to azure blob\n", error);
@@ -133,7 +134,7 @@ var stopRetention = function (camId) {
                     request(options, function (error, response, body) {
                         // console.log(body);
                         if (!error) {
-                            console.log("Video recording done response posted", data.filePath);
+                            console.log("\n\n***Video recording done response posted -"+ data.filePath + " \n\n");
                             videoMap.delete(camId);
                             // fs.unlink(data.filePath);
                         } else {

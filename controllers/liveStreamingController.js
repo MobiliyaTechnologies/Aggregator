@@ -236,7 +236,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                     var max = Math.max.apply(null, numDetections)
                                     if (!objects.length || max<5) {
                                         faceCountZero = faceCountZero +1;
-                                        console.log('No faces detected--------------->', faceCountZero);
+                                        // console.log('No faces detected--------------->', faceCountZero);
                                         var faceResult = { imageName: imageName,
                                             bboxResults: [],totalCount: 0,deviceName: camName,timestamp: timestamp,
                                             feature: detectionType,

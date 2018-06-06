@@ -122,7 +122,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    console.log("Starting stream with data::", JSON.stringify(parsedJson));
+    // console.log("Starting stream with data::", JSON.stringify(parsedJson));
 
     var fps;
     //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
@@ -151,8 +151,6 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;
-
-
 
     switch (deviceType) {
         case 'IP':
@@ -233,8 +231,8 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                     const image = frame;
                                     // detect faces
                                     const { objects, numDetections } = classifier.detectMultiScale(image.bgrToGray());
-                                    console.log('faceRects:', objects);
-                                    console.log('confidences:', numDetections);
+                                    // console.log('faceRects:', objects);
+                                    // console.log('confidences:', numDetections);
                                     var max = Math.max.apply(null, numDetections)
                                     if (!objects.length || max<5) {
                                         faceCountZero = faceCountZero +1;

@@ -48,7 +48,7 @@ var getVideoData = function (req, res) {
 }
 
 var videoRetentionRecording = function (videoSourceData) {
-    console.log("Video Retention started for  ::" + videoSourceData.camId);
+    console.log("\n\n***Video Retention started for  ::" + videoSourceData.camId+"\n\n");
     switch (videoSourceData.deviceType) {
         case 'IP':
             console.log("Checking IP camera");

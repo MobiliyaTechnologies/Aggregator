@@ -12,10 +12,10 @@ var containerName = config.videoIndexer.containerName;
 var videoMap = new Map();
 
 var getVideoData = function (req, res) {
-    //console.log("Video Data - ", req.body.camId);
+    console.log("Video Data - ", req.body.camId);
     res.end("done");
     data = videoMap.get(req.body.camId);
-    //console.log("From map -", data);
+    console.log("From map -", data);
 
     if (data.filePath) {
         data.uploadedFlag = true;
@@ -42,7 +42,7 @@ var getVideoData = function (req, res) {
     data.uploadedFlag = false;
     videoData = Object.assign(data, req.body);
     videoMap.set(req.body.camId, videoData);
-    //console.log("Newly added - ", videoMap);
+    console.log("Newly added - ", videoMap);
 }
 
 var videoRetentionRecording = function (videoSourceData) {
@@ -58,7 +58,8 @@ var videoRetentionRecording = function (videoSourceData) {
         "deviceName": videoSourceData.deviceName,
         "retentionPeriod": videoSourceData.retentionPeriod,
         "uploadedFlag": false,
-        "pid": pyshell.childProcess.pid
+        "pid": pyshell.childProcess.pid,
+        "videoName":videoSourceData.videoName
     }
     videoMap.set(videoSourceData.camId, uploadedVideoData);
     // console.log("Updated --", videoMap);
@@ -102,7 +103,6 @@ var stopRetention = function (camId) {
 
     if (data) {
         console.log("Stoping Video Retention of camera -", camId);
-        videoMap.delete(camId);
         try {
             process.kill(data.pid);
         } catch (e) {
@@ -122,6 +122,7 @@ var stopRetention = function (camId) {
                         console.log(body);
                         if (!error) {
                             console.log("Video recording done response posted");
+                            videoMap.delete(camId);
                         } else {
                             console.log("Error in posting Video recording done response:", error);
                         }

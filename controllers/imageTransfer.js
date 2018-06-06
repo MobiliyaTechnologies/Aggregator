@@ -46,7 +46,7 @@ var sendImageRest = function (imageName, sendImageuri, outBase64,
                 console.log("Raw Image Posted");
             }
             else {
-                console.log("++BACKEND: Response for image:: " + imgJsonBody.imgName + " => " + JSON.stringify(body));
+                console.log("++BACKEND: " + imgJsonBody.imgName);
             }
         } else {
             console.log("Error in posting Image:", error);
@@ -119,7 +119,7 @@ var rsyncInterval = function (timeInterval, imgName, imgPath, camId, jetsonFolde
                 if (error)
                     console.log("Error in rsync ::", error);
                 else {
-                    console.log("--Rsync done of ", imgName);
+                    console.log("--Rsync ", imgName);
                 }
             });
         }, timeInterval);

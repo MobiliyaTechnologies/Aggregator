@@ -13,10 +13,10 @@ def read_in():
 lines = read_in()
 camId = lines[0]
 streamingUrl = lines[1]
+postUrl = lines[2]
 #print lines
 # 6:39PM - 7PM, 7PM - 9PM, 9PM - 11PM, 11PM-00AM, 00AM-2AM, 2AM-4AM 
 countVideo = 1
-
 cap = cv2.VideoCapture(streamingUrl)
 
 fps = cap.get(5)
@@ -42,7 +42,7 @@ while(True):
     nextHour = startTime.tm_hour + 1
     if nextHour == 0:
         duration = 1
-    t_end = start + duration  * 60 * 60
+    t_end = start + duration * 60 * 60
 
     #Date
     date = str(startTime.tm_year) + '-' + str(startTime.tm_mon) + '-' + str(startTime.tm_mday)
@@ -66,10 +66,8 @@ while(True):
         "filePath" : FILE_OUTPUT,
         "fileName" : fileName
     }
-
     #send all data
-    r = requests.post('http://localhost:3001/videoRetention',data=videoData)
-    #time.sleep(10)    
+    r = requests.post(postUrl,data=videoData)
     
     while time.time() < t_end :
         if countVideo == 1:

@@ -60,12 +60,12 @@ var createCameraFolder = function (message, callback) {
     }
     if (parsedJson.deviceType == 'IP') {
         console.log("Checking IP camera");
-        findIPOfIPCamera(parsedJson, function (url) {
-            parsedJson.streamingUrl = url;
+        //findIPOfIPCamera(parsedJson, function (url) {
+          //  parsedJson.streamingUrl = url;
             fps = 5;
             console.log("STREAMING URL - --", parsedJson.streamingUrl);
             callback(parsedJson, cameraFolder);
-        });
+        //});
     } else {
         callback(parsedJson, cameraFolder);
     }
@@ -296,4 +296,3 @@ module.exports.startLiveStreaming = startLiveStreaming;
 module.exports.stopCamera = stopCamera;
 module.exports.openStream = openStream;
 module.exports.toggleSendImageFlag = toggleSendImageFlag;
-module.exports.findIPOfIPCamera = findIPOfIPCamera;

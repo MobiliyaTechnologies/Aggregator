@@ -14,6 +14,7 @@ config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
 config.pingInterval = 900000;   //in miliseconds(15 minutes)
+config.appendMac ="";   //Change this value when multiple aggreagtors are on one machine
 
 /**
  * Backend

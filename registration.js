@@ -56,7 +56,7 @@ var register = function (callback) {
                         //if device already registered
                         registry.get(device.deviceId, function (err, deviceInfo, res) {
                             console.log("Got the device info\n");
-                            var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                            var deviceConnectionString = config.iotHub.connectionString.split(';')[0] + ";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                             topicSubscribe(deviceConnectionString);
                             pingMechanismInterval(macId);
                         });
@@ -66,7 +66,7 @@ var register = function (callback) {
                         console.log(' status: ' + res.statusCode + ' ' + res.statusMessage);
                     if (deviceInfo) {
                         //console.log(' device info: ' + JSON.stringify(deviceInfo));
-                        var deviceConnectionString = "HostName=snsiothub.azure-devices.net;DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                        var deviceConnectionString = config.iotHub.connectionString.split(';')[0] + ";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                         topicSubscribe(deviceConnectionString);
                         pingMechanismInterval(macId);
                     }

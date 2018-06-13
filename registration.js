@@ -56,7 +56,7 @@ var register = function (callback) {
                         //if device already registered
                         registry.get(device.deviceId, function (err, deviceInfo, res) {
                             console.log("Got the device info\n");
-                            var deviceConnectionString = config.iotHub.connectionString.split(';')[0] +";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                            var deviceConnectionString = config.iotHub.connectionString.split(';')[0] + ";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                             topicSubscribe(deviceConnectionString);
                             pingMechanismInterval(macId);
                         });
@@ -105,3 +105,4 @@ var pingMechanismInterval = function (serialNo) {
 }
 
 module.exports.register = register;
+

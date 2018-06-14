@@ -1,15 +1,39 @@
 var config = require('../config');
 var base64_encode = require('./imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');
+var imageProcessingController = require('../controllers/imageProcessingController');
 
 var fs = require('fs');
 var mkdirp = require('mkdirp');
-const cv = require('opencv4nodejs');
-const classifier = new cv.CascadeClassifier(cv.HAAR_FRONTALFACE_ALT2);
+var Rsync = require('rsync');
+var cv = require('opencv');
+var request = require('request');
+const { exec } = require('child_process');
 
+var sendImagesToggleMap = new Map();
 //to keep track of live cameras
 var liveCamIntervalArray = [];
-var sendImagesToggleMap = new Map();
+
+var findIPOfIPCamera = function (parsedJson, callback) {
+    if(parsedJson.deviceType !=='IP'){
+        callback(parsedJson.streamingUrl);
+    }
+    exec("arp | grep " + parsedJson.streamingUrl + " | awk '{print $1}'", (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+        }
+        var ipAddress = stdout.split("\n")[0];
+        if (ipAddress) {
+            streamingUrl = 'rtsp://' + ipAddress + '/onvif1';
+
+            console.log("Generated URL--> ", streamingUrl);
+            var gstStreamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
+            callback(gstStreamingUrl);
+        } else {
+            //callback(null);
+        }
+    });
+}
 
 /**
 * to create Cam<CamId> folder and call startStreaming
@@ -24,7 +48,6 @@ var createCameraFolder = function (message, callback) {
 
     var camId = parsedJson.camId;
     var cameraFolder = config.livestreamingCamFolder + camId;
-
     //creating cameraId folder
     if (!fs.existsSync(cameraFolder)) {
         mkdirp(cameraFolder, function (err) {
@@ -32,11 +55,20 @@ var createCameraFolder = function (message, callback) {
                 console.log('Error in creating folder');
             } else {
                 console.log("cameraId directory created successfully!");
-                callback(parsedJson, cameraFolder);
             }
         });
-    } else
+    }
+    if (parsedJson.deviceType == 'IP') {
+        console.log("Checking IP camera");
+        //findIPOfIPCamera(parsedJson, function (url) {
+          //  parsedJson.streamingUrl = url;
+            fps = 5;
+            console.log("STREAMING URL - --", parsedJson.streamingUrl);
+            callback(parsedJson, cameraFolder);
+        //});
+    } else {
         callback(parsedJson, cameraFolder);
+    }
 };
 
 /**
@@ -48,18 +80,20 @@ var createCameraFolder = function (message, callback) {
 var openStream = function (streamingUrl, retryTime, callback) {
     var failflag = 0;
     var failcount = 0;
-    var maxTries = 4;
-    //webcam
-    if (streamingUrl === "0")
-        streamingUrl = parseInt(streamingUrl)
+    var maxTries = 11;
+    retryTime = 2000;
     console.log("**In STREAM OPENING TEST for -", streamingUrl);
+    //Webcam
+    if (streamingUrl === "1") {
+        streamingUrl = parseInt(streamingUrl);
+    }
 
     var retryInterval = setInterval(function () {
         var vCap = null;
-        if (failflag == 0) {
+        if (failflag === 0) {
             try {
                 vCap = new cv.VideoCapture(streamingUrl);
-                if (vCap != null)
+                if (vCap !== null)
                     failflag = 1;
                 console.log("**STREAM OPENING DONE     !");
             } catch (error) {
@@ -74,43 +108,12 @@ var openStream = function (streamingUrl, retryTime, callback) {
             callback(vCap);
             clearInterval(retryInterval);
         }
-        if (failcount === maxTries) {
+        if (failcount == maxTries) {
             clearInterval(retryInterval);
-            callback(null);
             console.log("**Reached Maximum tries ...\nCamera not able to stream-", streamingUrl);
+            callback(vCap);
         }
     }, retryTime);
-}
-
-var calculateFPS = function (streamingUrl, callback) {
-    var framesToread = 408;
-    var startFrameCount = 8;
-    var frameNumber = 1;
-    var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
-    var FPS;
-    openStream(streamingUrl, retryTime, function (vCap) {
-        console.log("OpenStream response :: ", vCap);
-        //get FPS of stream using OpenCV. If not works calculate it.
-        FPS = vCap.get(5);
-        if (FPS > 0) {
-            callback(vCap, FPS);
-        }
-        else {
-            while (frameNumber != framesToread) {
-                let frame = vCap.read();
-                if (frameNumber == startFrameCount)
-                    var start = new Date().getTime();
-
-                if (frameNumber == framesToread - 1) {
-                    var end = new Date().getTime();
-                    FPS = parseInt((framesToread - startFrameCount) / ((end - start) / 1000));
-                    console.log("FPS    ::", FPS);
-                    callback(vCap, FPS);
-                }
-                frameNumber += 1;
-            }
-        }
-    });
 }
 
 /**
@@ -122,15 +125,14 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
     console.log("CALL -startLiveStreaming");
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    // console.log("Starting stream with data::", JSON.stringify(parsedJson));
+    console.log("Starting stream with data::", JSON.stringify(parsedJson));
 
-    var fps;
+    var fps = 20;
     //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
 
     var pushedInterval = false;
     //filepath to stream images
     var filePath = cameraFolder + "/";
-
     var streamingUrl = parsedJson.streamingUrl;
     var camId = parsedJson.camId;
     var detectionType = parsedJson.feature;
@@ -145,37 +147,36 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var camName = parsedJson.deviceName;
     var userId = parsedJson.userId;
     var cloudServiceUrl = parsedJson.cloudServiceUrl;
-    deviceType = parsedJson.deviceType;
     var wayToCommunicate = parsedJson.wayToCommunicate;
     var expectedFPS = parsedJson.computeEngineFps;
-
+    var deviceType = parsedJson.deviceType;
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
-    var vCap;
 
+    //Webcam
+    if (streamingUrl === "1") {
+        streamingUrl = parseInt(streamingUrl);
+        fps = 30;
+    }
     switch (deviceType) {
         case 'IP':
             console.log("Checking IP camera");
             streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
+            fps=5;
     }
 
-    var faceCountZero = 0;
-    //calculate fps
-    calculateFPS(streamingUrl, function (vCap, fps) {
-        console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
+    var interval = fps;
+    expectedFPS = parseInt(fps / expectedFPS);
 
-        var interval = fps;
-        console.log("\nExpected FPS ::::::::::::::::", expectedFPS);
-
-        expectedFPS = parseInt(fps / expectedFPS);
-
-        console.log("\nDivision Factor ::::::::::::::::", expectedFPS);
-        //open the stream
-        console.log("Open Stream responded as:: ", vCap);
+    //open the stream
+    var vCap;
+    openStream(streamingUrl, retryTime, function (cap) {
+        console.log("Open Stream responded as:: ", cap);
+        vCap = cap;
 
         if (vCap != null) {
             console.log("Stream Opened Successfully with fps ::", fps);
-            console.log("*Sending frames of " + camName + " now!!\n``````````````````````````````````\n");
-            var countframe = 0;
+            console.log("*Sending frames now!!\n``````````````````````````````````\n");
+            var countframe = 1;
             /**
             * To stream continuous frames with interval
             */
@@ -193,70 +194,53 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                 }
                 /**reading next frame */
                 if (vCap != null) {
-                    let frame = vCap.read();
-                    if (frame.empty) {
-                        vCap.reset();
-                        frame = vCap.read();
-                    }
-                    if (countframe % expectedFPS == 0) {
-                        //countframe reset
-                        countframe = 0;
-                        var timestamp = new Date().getTime();
-                        //composing imagename
-                        var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
-                        var imageFullPath = filePath + imageName;
-                        const outBase64 = cv.imencode('.jpg', frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]).toString('base64'); // Perform base64 encoding
-                        //Send images to Backend
-                        if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
-                            imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
-                        }
+                    vCap.read(function (err, frame) {
+                        if (err) { console.log(err); }
 
-                        /**to write captured image of camera into local fs */
-                        cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                        else {
+                            if (countframe % fps == 0) {
+                                //countframe reset
+                                countframe = 0;
+                                var timestamp = new Date().getTime();
+                                //composing imagename
+                                var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
+                                var imageFullPath = filePath + imageName;
 
-                        //send to respective compute engine
-                        switch (wayToCommunicate) {
-                            case 'rsync':
-                                /**
-                                * to sync newly added file with compute engine's FS
-                                */
-                                imageTransfer.rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
-                                break;
+                                /**to write captured image of camera into local fs */
+                                frame.save(imageFullPath);
+                                frame.release();
+                                delete frame;
 
-                            case 'restAPI':
-                                /**
-                                * to send images to cloud compute engine
-                                */
-                                if (detectionType == "faceRecognition") {
-                                    const image = frame;
-                                    // detect faces
-                                    const { objects, numDetections } = classifier.detectMultiScale(image.bgrToGray());
-                                    // console.log('faceRects:', objects);
-                                    // console.log('confidences:', numDetections);
-                                    var max = Math.max.apply(null, numDetections)
-                                    if (!objects.length || max<5) {
-                                        faceCountZero = faceCountZero +1;
-                                        // console.log('No faces detected--------------->', faceCountZero);
-                                        var faceResult = { imageName: imageName,
-                                            bboxResults: [],totalCount: 0,deviceName: camName,timestamp: timestamp,
-                                            feature: detectionType,
-                                            userId: userId,camId: camId,
-                                            imageWidth: imageConfig.ImageWidth ,imageHeight : imageConfig.imageHeight }
-                                        imageTransfer.sendFaceResult(faceResult, config.cloudServiceTargetUrl);
-                                    } else {
-                                        imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
-                                            imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId);
-                                    }
+                                //send images to Backend
+                                if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
+                                    var outBase64 = imageProcessingController.base64_encode(imageFullPath);
+                                    imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
                                 }
-                                break;
+                                //send to respective compute engine
+                                switch (wayToCommunicate) {
+                                    case 'rsync':
+                                        /**
+                                        * to sync newly added file with compute engine's FS
+                                        */
+                                        //imageTransfer.rsyncInterval(0, imageName, imageFullPath, camId, jetsonFolderPath);
+                                        break;
 
-                            default:
-                                console.log("Warning : Default Case executed ( specified way of communication not available:-  " + wayToCommunicate
-                                    + " not served yet)!");
+                                    case 'restAPI':
+                                        /**
+                                        * to send images to cloud compute engine
+                                        */
+                                        imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
+                                            imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
+                                        break;
+
+                                    default:
+                                        console.log("Warning : Default Case executed ( specified way of communication not available:-  " + wayToCommunicate
+                                            + " not served yet)!");
+                                }
+                            }
                         }
-                        delete frame;
-                    }
-                    countframe = countframe + 1;
+                        countframe = countframe + 1;
+                    });
                 }
                 else {
                     console.log("**ERROR ::  In continuos streaming not able to stream cause Vcap is null !!")
@@ -268,6 +252,16 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
             return;
         }
     });
+}
+
+/**
+ * images toggling
+ * @param {*} camId 
+ * @param {*} flag 
+ */
+var toggleSendImageFlag = function (camId, flag) {
+    sendImagesToggleMap.set(camId, flag);
+    console.log("Flag Toggled to " + flag + " for camera id :", camId);
 }
 
 /** 
@@ -285,10 +279,11 @@ var stopCamera = function (message, callback) {
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             //to remove stopped live camera 
+            clearInterval(cam.intervalObj);
             if (cam.vCapObj != null) {
                 cam.vCapObj.release();
+                delete cam.vCapObj;
             }
-            clearInterval(cam.intervalObj);
             console.log(" Stopped :: ", cam.camId);
             liveCamIntervalArray.splice(i, i + 1);
         }
@@ -296,21 +291,8 @@ var stopCamera = function (message, callback) {
     callback(null);
 };
 
-/**
- * images toggling
- * @param {*} camId 
- * @param {*} flag 
- */
-var toggleSendImageFlag = function (camId, flag) {
-    sendImagesToggleMap.set(camId, flag);
-    console.log("Flag Toggled to " + flag + " for camera id :", camId);
-}
-
 module.exports.createCameraFolder = createCameraFolder;
 module.exports.startLiveStreaming = startLiveStreaming;
 module.exports.stopCamera = stopCamera;
 module.exports.openStream = openStream;
 module.exports.toggleSendImageFlag = toggleSendImageFlag;
-module.exports.sendImagesToggleMap = sendImagesToggleMap;
-module.exports.liveCamIntervalArray = liveCamIntervalArray;
-module.exports.calculateFPS = calculateFPS;

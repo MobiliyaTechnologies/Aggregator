@@ -278,17 +278,16 @@ var stopCamera = function (message, callback) {
 
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
+            clearInterval(cam.intervalObj);
             //to remove stopped live camera 
             if (cam.vCapObj != null) {
                 //cam.vCapObj.release();
                 delete cam.vCapObj;
             }
-            clearInterval(cam.intervalObj);
             console.log(" Stopped :: ", cam.camId);
             liveCamIntervalArray.splice(i, i + 1);
         }
     });
-    callback(null);
 };
 
 module.exports.createCameraFolder = createCameraFolder;

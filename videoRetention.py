@@ -40,9 +40,9 @@ while(True):
     start = time.time()
     startTime=time.localtime(start)
     nextHour = startTime.tm_hour + 1
-    if nextHour == 0:
+    if nextHour == 24:
         duration = 1
-    t_end = start + duration * 60 * 60
+    t_end = start + duration * 60 *60
 
     #Date
     date = str(startTime.tm_year) + '-' + str(startTime.tm_mon) + '-' + str(startTime.tm_mday)
@@ -52,7 +52,7 @@ while(True):
     #duration End
     if countVideo == 1 :
             durationEnd = str(nextHour-1) + ":59"
-    elif nextHour == 0 :
+    elif nextHour == 24 :
             durationEnd = "00:00"
     else:
         durationEnd = str(time.localtime(t_end).tm_hour) + ":" + str(time.localtime(t_end).tm_min)

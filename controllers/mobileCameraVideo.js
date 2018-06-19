@@ -76,6 +76,12 @@ var streamMobileVideo = function (parsedJson,cameraFolder) {
             var camInterval = setInterval(function () {
 
                 if (pushedInterval == false) {
+                    var camData = {
+                        intervalObj: camInterval,
+                        vCapObj: vCap
+                    }
+                    liveStreamingController.liveCameraMap.set(camId, camData);
+
                     /**To maintain live camera array */
                     liveStreamingController.liveCamIntervalArray.push({
                         camId: camId,

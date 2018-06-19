@@ -10,6 +10,7 @@ const classifier = new cv.CascadeClassifier(cv.HAAR_FRONTALFACE_ALT2);
 //to keep track of live cameras
 var liveCamIntervalArray = [];
 var sendImagesToggleMap = new Map();
+var liveCameraMap = new Map();
 
 /**
 * to create Cam<CamId> folder and call startStreaming
@@ -183,6 +184,11 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
 
                 if (pushedInterval == false) {
                     /**To maintain live camera array */
+                    var camData = {
+                        intervalObj: camInterval,
+                        vCapObj: vCap
+                    }
+                    liveCameraMap.set(camId, camData);
                     liveCamIntervalArray.push({
                         camId: camId,
                         intervalObj: camInterval,
@@ -234,14 +240,16 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                     // console.log('faceRects:', objects);
                                     // console.log('confidences:', numDetections);
                                     var max = Math.max.apply(null, numDetections)
-                                    if (!objects.length || max<5) {
-                                        faceCountZero = faceCountZero +1;
+                                    if (!objects.length || max < 5) {
+                                        faceCountZero = faceCountZero + 1;
                                         // console.log('No faces detected--------------->', faceCountZero);
-                                        var faceResult = { imageName: imageName,
-                                            bboxResults: [],totalCount: 0,deviceName: camName,timestamp: timestamp,
+                                        var faceResult = {
+                                            imageName: imageName,
+                                            bboxResults: [], totalCount: 0, deviceName: camName, timestamp: timestamp,
                                             feature: detectionType,
-                                            userId: userId,camId: camId,
-                                            imageWidth: imageConfig.ImageWidth ,imageHeight : imageConfig.imageHeight }
+                                            userId: userId, camId: camId,
+                                            imageWidth: imageConfig.ImageWidth, imageHeight: imageConfig.imageHeight
+                                        }
                                         imageTransfer.sendFaceResult(faceResult, config.cloudServiceTargetUrl);
                                     } else {
                                         imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
@@ -282,18 +290,16 @@ var stopCamera = function (message, callback) {
     var camIds = JSON.parse(message);
     let tempArr = liveCamIntervalArray.slice();
 
-    tempArr.forEach(function (cam, i) {
-        if (camIds.includes(cam.camId)) {
-            //to remove stopped live camera 
-            if (cam.vCapObj != null) {
-                cam.vCapObj.release();
-            }
-            clearInterval(cam.intervalObj);
-            console.log(" Stopped :: ", cam.camId);
-            liveCamIntervalArray.splice(i, i + 1);
-        }
-    });
-    callback(null);
+    // console.log("Cameras ON --", liveCameraMap);
+    var camData = liveCameraMap.get(camIds[0]);
+    if (camData) {
+        clearInterval(camData.intervalObj);
+        camData.vCapObj.release();
+        liveCameraMap.delete(camIds[0]);
+        console.log("Stopped Camera---", camIds[0]);
+    }else{
+        console.log("Camera not found to stop--",camIds[0]);
+    }
 };
 
 /**
@@ -314,3 +320,4 @@ module.exports.toggleSendImageFlag = toggleSendImageFlag;
 module.exports.sendImagesToggleMap = sendImagesToggleMap;
 module.exports.liveCamIntervalArray = liveCamIntervalArray;
 module.exports.calculateFPS = calculateFPS;
+module.exports.liveCameraMap = liveCameraMap;

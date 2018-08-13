@@ -9,12 +9,14 @@ config.port = 3001;
  * Aggregator Details
  */
 config.aggregatorName = "AggregatorCollectionModule";
-config.location = "4rth Floor Amar Apex";
+config.location = "<UpdateLocation>";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
-config.pingInterval = 900000;   //in miliseconds(15 minutes)
+config.pingInterval = 360000;   //in miliseconds(6 minutes)
 config.appendMac ="";   //Change this value when multiple aggreagtors are on one machine
+config.imageQuality = 50;   //it can be a quality from 0 to 100 (the higher the value -higher the quality and image size)
+config.numberOfBlobs = 3;
 
 /**
  * Backend
@@ -32,9 +34,11 @@ config.iotHub = {
  */
 config.blobConfiguration = {
     containerName: 'mobileimg',
+    faceContainerName: 'facethreeblobcontainer',
     account: '<storageAccountName>',
     accessKey: '<storageAccountAccessKey>'
 }
+config.blobConfiguration.baseUrl = 'https://'+ config.blobConfiguration.account +'.blob.core.windows.net/';
 
 /**
  * Video Indexing Configurations

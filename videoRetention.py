@@ -24,13 +24,13 @@ if fps == 0:
     fps = 20
 width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)   
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
+fourcc = cv2.VideoWriter_fourcc(*'VP80')
 
 while(True):
     time1=datetime.datetime.now()
     timestamp = str(time1.strftime('%Y%m%d%H%M%S'))
 
-    fileName = str(camId) + "_" + str(timestamp) + '.avi'
+    fileName = str(camId) + "_" + str(timestamp) + '.webm'
     FILE_OUTPUT = "./" + fileName
     if os.path.isfile(FILE_OUTPUT):
         os.remove(FILE_OUTPUT)
@@ -76,10 +76,11 @@ while(True):
         ret, frame = cap.read()
         if ret == True:
             out.write(frame)
-        else:
-            break
+	else:    
+	    cap = cv2.VideoCapture(streamingUrl)
         
     countVideo = countVideo + 1
-    #out.release()
+    out.release()
 
+#cap.stop
 cap.release()

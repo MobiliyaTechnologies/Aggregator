@@ -23,6 +23,7 @@ var port = config.port;
 var blobService = storage.createBlobService(config.blobConfiguration.account, config.blobConfiguration.accessKey);
 var mobileImagesContainerName = config.blobConfiguration.containerName;
 var videoIndexerContainerName = config.videoIndexer.containerName;
+var faceContainerName = config.blobConfiguration.faceContainerName;
 
 const createContainer = function(containerName)  {
         blobService.createContainerIfNotExists(containerName, { publicAccessLevel: 'container' }, function(err) {
@@ -36,6 +37,7 @@ const createContainer = function(containerName)  {
 
 createContainer(mobileImagesContainerName);
 createContainer(videoIndexerContainerName);
+createContainer(faceContainerName);
 
 console.log("\n----------------=========PROJECT HEIMDALL=========----------------\n");
 console.log("\n		Name : ",config.aggregatorName);

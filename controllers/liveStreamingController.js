@@ -1,6 +1,6 @@
 var config = require('../config');
-var base64_encode = require('./imageProcessingController').base64_encode;
-var imageTransfer = require('../controllers/imageTransfer');
+var imageProcessingController = require('./imageProcessingController');
+var IOThubCommunication = require('../communication/IOTHub');
 
 var fs = require('fs');
 var mkdirp = require('mkdirp');
@@ -51,8 +51,9 @@ var openStream = function (streamingUrl, retryTime, callback) {
     var failcount = 0;
     var maxTries = 4;
     //webcam
-    if (streamingUrl === "0")
-        streamingUrl = parseInt(streamingUrl)
+    if (streamingUrl.indexOf("webcam") === 0)
+        streamingUrl = parseInt(streamingUrl.replace("webcam", ""));
+
     console.log("**In STREAM OPENING TEST for -", streamingUrl);
 
     var retryInterval = setInterval(function () {
@@ -125,9 +126,6 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     // console.log("Starting stream with data::", JSON.stringify(parsedJson));
 
-    var fps;
-    //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
-
     var pushedInterval = false;
     //filepath to stream images
     var filePath = cameraFolder + "/";
@@ -145,12 +143,10 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     }
     var camName = parsedJson.deviceName;
     var userId = parsedJson.userId;
-    var cloudServiceUrl = parsedJson.cloudServiceUrl;
-    deviceType = parsedJson.deviceType;
+    var deviceType = parsedJson.deviceType;
     var wayToCommunicate = parsedJson.wayToCommunicate;
     var expectedFPS = parsedJson.computeEngineFps;
 
-    var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
     var vCap;
 
     switch (deviceType) {
@@ -160,6 +156,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     }
 
     var faceCountZero = 0;
+    //fps:frames per second, interval: call to function in interval {vCap.get(5); vCap.get(CV_CAP_PROP_FPS)}
     //calculate fps
     calculateFPS(streamingUrl, function (vCap, fps) {
         console.log("\n\nFPS CALCULATED :::::::::::::::::::", fps);
@@ -211,14 +208,9 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                         //composing imagename
                         var imageName = camId + "_" + detectionType + "_" + timestamp + ".jpg";
                         var imageFullPath = filePath + imageName;
-                        const outBase64 = cv.imencode('.jpg', frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]).toString('base64'); // Perform base64 encoding
-                        //Send images to Backend
-                        if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
-                            imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
-                        }
 
                         /**to write captured image of camera into local fs */
-                        cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), 50]);
+                        cv.imwrite(imageFullPath, frame, [parseInt(cv.IMWRITE_JPEG_QUALITY), config.imageQuality]);
 
                         //send to respective compute engine
                         switch (wayToCommunicate) {
@@ -233,6 +225,13 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 /**
                                 * to send images to cloud compute engine
                                 */
+                                var commonDataToSend = {
+                                    'timestamp': timestamp,
+                                    'feature': detectionType,
+                                    'deviceName': camName,
+                                    'camId': camId,
+                                    'userId': userId
+                                }
                                 if (detectionType == "faceRecognition") {
                                     const image = frame;
                                     // detect faces
@@ -243,18 +242,37 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                     if (!objects.length || max < 5) {
                                         faceCountZero = faceCountZero + 1;
                                         // console.log('No faces detected--------------->', faceCountZero);
-                                        var faceResult = {
-                                            imageName: imageName,
-                                            bboxResults: [], totalCount: 0, deviceName: camName, timestamp: timestamp,
-                                            feature: detectionType,
-                                            userId: userId, camId: camId,
-                                            imageWidth: imageConfig.ImageWidth, imageHeight: imageConfig.imageHeight
-                                        }
-                                        imageTransfer.sendFaceResult(faceResult, config.cloudServiceTargetUrl);
+                                        commonDataToSend.imageName = imageName;
+                                        commonDataToSend.bboxResults = [];
+                                        commonDataToSend.totalCount = 0;
+                                        commonDataToSend.imageWidth = imageConfig.ImageWidth;
+                                        commonDataToSend.imageHeight = imageConfig.imageHeight;
+                                        imageProcessingController.uploadImageToBlob(imageName, imageFullPath, commonDataToSend, function (faceResult) {
+                                            if (faceResult) {
+                                                IOThubCommunication.sendIOTHubMessage(faceResult);
+                                            }
+                                        });
+
                                     } else {
-                                        imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
-                                            imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId);
+                                        // console.log('Facesdetected--------------->', faceCountZero);
+                                        commonDataToSend.imageName = imageName;
+                                        commonDataToSend.areaOfInterest = bboxes;
+                                        commonDataToSend.imageConfig = imageConfig;
+                                        imageProcessingController.uploadImageToBlob(imageName, imageFullPath, commonDataToSend, function (faceCEData) {
+                                            if (faceCEData) {
+                                                IOThubCommunication.sendIOTHubMessage(faceCEData, "cloudComputeImages");
+                                            }
+                                        });
                                     }
+                                } else {
+                                    commonDataToSend.imageName = imageName;
+                                    commonDataToSend.areaOfInterest = bboxes;
+                                    commonDataToSend.imageConfig = imageConfig;
+                                    imageProcessingController.uploadImageToBlob(imageName, imageFullPath, commonDataToSend, function (cloudCEData) {
+                                        if (cloudCEData) {
+                                            IOThubCommunication.sendIOTHubMessage(cloudCEData, "cloudComputeImages");
+                                        }
+                                    });
                                 }
                                 break;
 
@@ -297,8 +315,8 @@ var stopCamera = function (message, callback) {
         camData.vCapObj.release();
         liveCameraMap.delete(camIds[0]);
         console.log("Stopped Camera---", camIds[0]);
-    }else{
-        console.log("Camera not found to stop--",camIds[0]);
+    } else {
+        console.log("Camera not found to stop--", camIds[0]);
     }
 };
 

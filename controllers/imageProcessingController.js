@@ -39,7 +39,6 @@ var deFishEyeImage = function (sourceImageName, sourceImageFullPath, destination
             if (err) {
                 console.log("Error in dwarping :", err);
             } else {
-
                 console.log("-----------------------------DWARP Done of IMAGE ::" + sourceImageFullPath);
                 callback(sourceImageName, destinationImageFullPath);
 
@@ -62,15 +61,34 @@ var downloadBlob = function (blobName, imageFullPath, callback) {
             // console.log({ message: `Download of '${blobName}' complete` });
             blobService.deleteBlobIfExists(containerName, blobName,
                 function (error, result) {
-                    if (error) { 
-                        console.log("Error in deleting blob - ",error);
-                    } 
+                    if (error) {
+                        console.log("Error in deleting blob - ", error);
+                    }
                 });
             callback();
         }
     });
 }
 
+//upload image data to blob
+var uploadImageToBlob = function (imageName, imageFullPath, imageData, callback) {
+    var faceContainerName = config.blobConfiguration.faceContainerName;
+    var imageUrl = config.blobConfiguration.baseUrl + faceContainerName + "/" + imageName;
+
+    blobService.createBlockBlobFromLocalFile(faceContainerName, imageName, imageFullPath,
+        function (error, result, response) {
+            if (!error) {
+                //send messsage to IOTHub
+                imageData.imageUrl = imageUrl;
+                callback(imageData);
+            } else {
+                console.log("Couldnt upload image to azure blob\n", error);
+                callback(null);
+            }
+        });
+}
+
 module.exports.base64_encode = base64_encode;
 module.exports.deFishEyeImage = deFishEyeImage;
 module.exports.downloadBlob = downloadBlob;
+module.exports.uploadImageToBlob = uploadImageToBlob;

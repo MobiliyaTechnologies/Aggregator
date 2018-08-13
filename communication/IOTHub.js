@@ -1,4 +1,4 @@
-//Connect MQTT Broker
+//Other modules
 var config = require('../config');
 var checkCamera = require('../controllers/checkCameraController').checkCamera;
 var rawImageController = require('../controllers/rawImageController');
@@ -8,7 +8,9 @@ var mobileCameraFlow = require('../controllers/mobileCameraFlow');
 var mobileCameraVideo = require('../controllers/mobileCameraVideo');
 var videoRetention = require('../controllers/videoRetention');
 
-var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
+//node modules for IOTHUb
+var clientFromConnectionStringAMQP = require('azure-iot-device-amqp').clientFromConnectionString;
+var Message = require('azure-iot-device').Message;
 
 var client;
 
@@ -31,11 +33,11 @@ var printError = function (err) {
 var IOTHubListener = function (client) {
     client.open(function (error) {
         if (error)
-            console.log("Error in connecting..");
+            console.log("Error in connecting IOTHub..");
         else {
             console.log("Connected to IOTHub");
             client.on('message', function (message) {
-                //console.log('Id: ' + message.messageId + ' Body: ' + message.data);
+                // console.log('Id: ' + message.messageId + ' Body: ' + message.data);
                 client.complete(message, printResultFor('completed'));
 
                 var topic = message.messageId;
@@ -90,17 +92,20 @@ var IOTHubListener = function (client) {
                     case "startStreaming":
                         var sendData = message.toString();
                         var parsedJson = JSON.parse(sendData);
-                        //console.log("Data to stream ::", parsedJson);
-
-                        liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
-                            if (parsedJson.deviceType !== "Mobile") {
-                                liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
-                                console.log("MQTT==================Start Streaming!!\n-----------------------------------\n");
-                            }else{
-                                mobileCameraVideo.streamMobileVideo(parsedJson,cameraFolder);
-                            }
-                        });
-                        if(parsedJson.retentionPeriod){
+                        // console.log("Data to stream ::", parsedJson);
+                        if (parsedJson.boundingBox[0].shape !== "Line" && (parsedJson.feature != "humanDetection" && parsedJson.feature != "objectDetection")) {
+                            liveStreamController.createCameraFolder(sendData, function (parsedJson, cameraFolder) {
+                                if (parsedJson.deviceType !== "Mobile") {
+                                    liveStreamController.startLiveStreaming(parsedJson, cameraFolder);
+                                    console.log("IOTHUB==================Start Streaming!!\n-----------------------------------\n");
+                                } else {
+                                    mobileCameraVideo.streamMobileVideo(parsedJson, cameraFolder);
+                                }
+                            });
+                        } else {
+                            console.log("Tripline/humanDetection/ObjectDetection Camera will not be streamed on Aggregator");
+                        }
+                        if (parsedJson.retentionPeriod) {
                             videoRetention.videoRetentionRecording(parsedJson);
                         }
                         break;
@@ -113,7 +118,7 @@ var IOTHubListener = function (client) {
                         console.log("\n*Stop these cameras ::", JSON.stringify(camIds));
                         liveStreamController.stopCamera(camIds, function (error) {
                             if (!error) {
-                                console.log("MQTT==================Stop Camera Done\n-----------------------------------\n");
+                                console.log("IOTHUB==================Stop Camera Done\n-----------------------------------\n");
                             }
                         });
                         var cam = JSON.parse(message);
@@ -167,9 +172,8 @@ var IOTHubListener = function (client) {
  * @param {*} deviceConnectionString 
  */
 var topicSubscribe = function (deviceConnectionString) {
-    console.log("Let's connect to IOTHub");
-
-    client = clientFromConnectionString(deviceConnectionString);
+    console.log("Connecting to IOTHub...");
+    client = clientFromConnectionStringAMQP(deviceConnectionString);
     IOTHubListener(client);
     client.on('errorReceived', printError);
     client.on('error', function (err) {
@@ -180,6 +184,23 @@ var topicSubscribe = function (deviceConnectionString) {
         //client.open(connectCallback);
     });
 }
+/**
+ * send messages over IOTHubdd
+ * @param {*} dataToSend 
+ */
+var sendIOTHubMessage = function (dataToSend, type) {
+    var message = new Message(JSON.stringify(dataToSend));
+    if(type){
+        message.properties.add("type", "cloudComputeImages");
+    }
+    client.sendEvent(message, function (err) {
+        if (err) {
+            console.log(err.toString());
+        } else {
+            console.log("\n<----Message Sent---->",dataToSend.imageName);
+        }
+    });
+}
 
 module.exports.topicSubscribe = topicSubscribe;
-
+module.exports.sendIOTHubMessage = sendIOTHubMessage;

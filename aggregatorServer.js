@@ -23,6 +23,7 @@ var port = config.port;
 var blobService = storage.createBlobService(config.blobConfiguration.account, config.blobConfiguration.accessKey);
 var mobileImagesContainerName = config.blobConfiguration.containerName;
 var videoIndexerContainerName = config.videoIndexer.containerName;
+var faceContainerName = config.blobConfiguration.faceContainerName;
 
 const createContainer = function(containerName)  {
         blobService.createContainerIfNotExists(containerName, { publicAccessLevel: 'container' }, function(err) {
@@ -36,6 +37,7 @@ const createContainer = function(containerName)  {
 
 createContainer(mobileImagesContainerName);
 createContainer(videoIndexerContainerName);
+createContainer(faceContainerName);
 
 console.log("\n----------------=========PROJECT HEIMDALL=========----------------\n");
 console.log("\n		Name : ",config.aggregatorName);
@@ -63,6 +65,16 @@ require('./routes/aggregatorRoutes')(app);
 /**
 * creating directories for images
 */
+//Base directory Cameras
+if (!fs.existsSync(config.jetsonCamFolder)) {
+    mkdirp(config.jetsonCamFolder, function (err) {
+        if (err) {
+            console.log(err);
+        } else
+            console.log("Base camera directory created :", config.camFolder);
+    });
+}
+
 //Base directory Cameras
 if (!fs.existsSync(config.camFolder)) {
     mkdirp(config.camFolder, function (err) {

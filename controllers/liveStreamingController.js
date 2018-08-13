@@ -1,7 +1,8 @@
 var config = require('../config');
-var base64_encode = require('./imageProcessingController').base64_encode;
 var imageTransfer = require('../controllers/imageTransfer');
 var imageProcessingController = require('../controllers/imageProcessingController');
+var imageProcessingController = require('./imageProcessingController');
+var IOThubCommunication = require('../communication/IOTHub');
 
 var fs = require('fs');
 var mkdirp = require('mkdirp');
@@ -15,7 +16,7 @@ var sendImagesToggleMap = new Map();
 var liveCamIntervalArray = [];
 
 var findIPOfIPCamera = function (parsedJson, callback) {
-    if(parsedJson.deviceType !=='IP'){
+    if (parsedJson.deviceType !== 'IP') {
         callback(parsedJson.streamingUrl);
     }
     exec("arp | grep " + parsedJson.streamingUrl + " | awk '{print $1}'", (error, stdout, stderr) => {
@@ -61,10 +62,10 @@ var createCameraFolder = function (message, callback) {
     if (parsedJson.deviceType == 'IP') {
         console.log("Checking IP camera");
         //findIPOfIPCamera(parsedJson, function (url) {
-          //  parsedJson.streamingUrl = url;
-            fps = 5;
-            console.log("STREAMING URL - --", parsedJson.streamingUrl);
-            callback(parsedJson, cameraFolder);
+        //  parsedJson.streamingUrl = url;
+        fps = 5;
+        console.log("STREAMING URL - --", parsedJson.streamingUrl);
+        callback(parsedJson, cameraFolder);
         //});
     } else {
         callback(parsedJson, cameraFolder);
@@ -84,9 +85,8 @@ var openStream = function (streamingUrl, retryTime, callback) {
     retryTime = 2000;
     console.log("**In STREAM OPENING TEST for -", streamingUrl);
     //Webcam
-    if (streamingUrl === "1") {
-        streamingUrl = parseInt(streamingUrl);
-    }
+    if (streamingUrl.indexOf("webcam") === 0)
+        streamingUrl = parseInt(streamingUrl.replace("webcam", ""));
 
     var retryInterval = setInterval(function () {
         var vCap = null;
@@ -153,15 +153,15 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
     var retryTime = 1000; //time interval after which openStream will try open the stream pipeline
 
     //Webcam
-    if (streamingUrl === "1") {
-        streamingUrl = parseInt(streamingUrl);
+    if (streamingUrl.indexOf("webcam") === 0) {
+        streamingUrl = parseInt(streamingUrl.replace("webcam", ""));
         fps = 30;
     }
     switch (deviceType) {
         case 'IP':
             console.log("Checking IP camera");
             streamingUrl = "uridecodebin uri=" + streamingUrl + " ! videoconvert ! videoscale ! appsink";
-            fps=5;
+            fps = 5;
     }
 
     var interval = fps;
@@ -214,7 +214,7 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                 //send images to Backend
                                 if (sendImagesToggleMap.get(camId) || parsedJson.sendImagesFlag) {
                                     var outBase64 = imageProcessingController.base64_encode(imageFullPath);
-                                    imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
+                                    //imageTransfer.sendImageRest(imageName, config.sendLiveStreamUploadURL, outBase64);
                                 }
                                 //send to respective compute engine
                                 switch (wayToCommunicate) {
@@ -229,8 +229,23 @@ var startLiveStreaming = function (parsedJson, cameraFolder) {
                                         /**
                                         * to send images to cloud compute engine
                                         */
-                                        imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
-                                            imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
+                                        var commonDataToSend = {
+                                            'timestamp': timestamp,
+                                            'feature': detectionType,
+                                            'deviceName': camName,
+                                            'camId': camId,
+                                            'userId': userId
+                                        }
+                                        commonDataToSend.imageName = imageName;
+                                        commonDataToSend.areaOfInterest = bboxes;
+                                        commonDataToSend.imageConfig = imageConfig;
+                                        imageProcessingController.uploadImageToBlob(imageName, imageFullPath, commonDataToSend, function (cloudCEData) {
+                                            if (cloudCEData) {
+                                                IOThubCommunication.sendIOTHubMessage(cloudCEData, "cloudComputeImages");
+                                            }
+                                        });
+                                        // imageTransfer.sendImageCloudComputeEngine(timestamp, imageFullPath, bboxes,
+                                        //     imageConfig, config.cloudServiceTargetUrl, cloudServiceUrl, camName, userId, camId); // cloudServiceUrl
                                         break;
 
                                     default:
@@ -279,7 +294,7 @@ var stopCamera = function (message, callback) {
     tempArr.forEach(function (cam, i) {
         if (camIds.includes(cam.camId)) {
             //to remove stopped live camera 
-	    clearInterval(cam.intervalObj);
+            clearInterval(cam.intervalObj);
             if (cam.vCapObj != null) {
                 //cam.vCapObj.release();
                 delete cam.vCapObj;

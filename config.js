@@ -1,4 +1,3 @@
-
 /**
  * For Aggregator Code
  */
@@ -9,15 +8,16 @@ config.port = 3001;
 /**
  * Aggregator Details
  */
-config.aggregatorName = "AggregatorCollectionModuleDemokit";
+config.aggregatorName = "AggregatorCollectionModule";
 config.location = "<Location>";
 config.channelId = "32";
 config.url = "rtsp://<username>:<password>@<ip_address>:<port>/cam/realmonitor?channel=<id>&subtype=0";
 config.availability = "yes";
-config.pingInterval = 900000;   //in miliseconds(15 minutes)
+config.pingInterval = 360000;   //in miliseconds(15 minutes)
+config.appendMac = "demo";
 
 /**
- * Backend
+ * Backend Url
  */
 config.host = '<backendUrl>'
 /**
@@ -32,9 +32,12 @@ config.iotHub = {
  */
 config.blobConfiguration = {
     containerName: 'mobileimg',
+    faceContainerName: 'facethreeblobcontainer',
     account: '<storageAccountName>',
     accessKey: '<storageAccountAccessKey>'
 }
+
+config.blobConfiguration.baseUrl = 'https://'+ config.blobConfiguration.account +'.blob.core.windows.net/';
 
 /**
  * Video Indexing Configurations
@@ -48,17 +51,20 @@ config.videoIndexer = {
     localVideoUploadCallUrl: 'http://localhost:' + config.port + '/videoUploading',
     containerUrl: 'https://' + config.blobConfiguration.account + '.blob.core.windows.net/videoindexer/'
 };
-//_____________________Configurations ends_____________________
+
+
 config.videoRetention = {
     localVideoUploadCallUrl: 'http://localhost:'+ config.port +'/videoRetention'
 }
 
 
+
 /**
  * All directorires
  */
-config.camFolder = "/home/nvidia/ComputeEngine/darknet/Cameras";
-config.livestreamingCamFolder = "/home/nvidia/ComputeEngine/darknet/Cameras/Cam";
+config.jetsonCamFolder =  "/home/nvidia/ComputeEngine/darknet/Cameras";
+config.camFolder = "/home/nvidia/Aggregator/Cameras";
+config.livestreamingCamFolder = "/home/nvidia/Aggregator/Cameras/Cam";
 config.rawImageDirectory = './RawImages';
 config.imageTargetDirectory = './Images360Target';
 

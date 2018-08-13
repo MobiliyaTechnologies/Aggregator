@@ -19,12 +19,13 @@ var registry = iothub.Registry.fromConnectionString(connectionString);
 var register = function (callback) {
     serial.getSerial(function (err, value) {
         var appendIPtoName = ip.address().split(".")[3];
-        var macId = value; //change if multiple aggregators are installed on one machine
+        var macId = config.appendMac + value; //change if multiple aggregators are installed on one machine
         //Aggregator information 
         var aggregatorData = {
             "name": config.aggregatorName,
             "url": config.url,
-            "macId":macId, "ipAddress": ip.address(),
+            "macId": macId, 
+            "ipAddress": ip.address(),
             "availability": config.availability,
             "location": config.location,
             "channelId": config.channelId
@@ -56,7 +57,8 @@ var register = function (callback) {
                         //if device already registered
                         registry.get(device.deviceId, function (err, deviceInfo, res) {
                             console.log("Got the device info\n");
-                            var deviceConnectionString = config.iotHub.connectionString.split(';')[0] + ";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
+                            var deviceConnectionString =
+                                config.iotHub.connectionString.split(';')[0] + ";DeviceId=" + deviceInfo.deviceId + ";SharedAccessKey=" + deviceInfo.authentication.symmetricKey.primaryKey;
                             topicSubscribe(deviceConnectionString);
                             pingMechanismInterval(macId);
                         });
@@ -86,7 +88,8 @@ var pingMechanismInterval = function (serialNo) {
         var aggregatorData = {
             "name": config.aggregatorName,
             "url": config.url,
-            "macId": serialNo, "ipAddress": ip.address()
+            "macId": serialNo, 
+            "ipAddress": ip.address()
         };
         var options = {
             rejectUnauthorized: false,
@@ -105,4 +108,3 @@ var pingMechanismInterval = function (serialNo) {
 }
 
 module.exports.register = register;
-
